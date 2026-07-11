@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gLakesideLaboratoryTitleCardGERTex[] = dgLakesi
 static const ALIGN_ASSET(2) char gLakesideLaboratoryTitleCardFRATex[] = dgLakesideLaboratoryTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgLakesideLaboratoryTitleCardCHITex "__OTR__textures/g_pn_26/gLakesideLaboratoryTitleCardCHITex"
 static const ALIGN_ASSET(2) char gLakesideLaboratoryTitleCardCHITex[] = dgLakesideLaboratoryTitleCardCHITex;

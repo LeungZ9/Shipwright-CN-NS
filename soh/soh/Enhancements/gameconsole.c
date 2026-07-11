@@ -17,5 +17,4 @@
 
 extern PlayState* gPlayState;
 
-void GameConsole_Init() {
-}
+void GameConsole_Init() {}

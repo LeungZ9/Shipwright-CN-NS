@@ -7,10 +7,9 @@
 #include "z_shot_sun.h"
 #include "overlays/actors/ovl_En_Elf/z_en_elf.h"
 #include "scenes/overworld/spot06/spot06_scene.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "vt.h"
 
-#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY)
 
 void ShotSun_Init(Actor* thisx, PlayState* play);
 void ShotSun_Destroy(Actor* thisx, PlayState* play);
@@ -63,15 +62,15 @@ void ShotSun_Init(Actor* thisx, PlayState* play) {
     params = this->actor.params & 0xFF;
     if (params == 0x40 || params == 0x41) {
         this->unk_1A4 = 0;
-        this->actor.flags |= ACTOR_FLAG_UPDATE_CULLING_DISABLED;
-        this->actor.flags |= ACTOR_FLAG_UPDATE_DURING_OCARINA;
+        this->actor.flags |= ACTOR_FLAG_UPDATE_WHILE_CULLED;
+        this->actor.flags |= ACTOR_FLAG_NO_FREEZE_OCARINA;
         this->actionFunc = func_80BADF0C;
-        this->actor.flags |= ACTOR_FLAG_LOCK_ON_DISABLED;
+        this->actor.flags |= ACTOR_FLAG_NO_LOCKON;
     } else {
         Collider_InitCylinder(play, &this->collider);
         Collider_SetCylinder(play, &this->collider, &this->actor, &sCylinderInit);
         this->actionFunc = ShotSun_UpdateHyliaSun;
-        this->actor.flags &= ~ACTOR_FLAG_ATTENTION_ENABLED;
+        this->actor.flags &= ~ACTOR_FLAG_TARGETABLE;
     }
 }
 
@@ -101,10 +100,8 @@ void ShotSun_SpawnFairy(ShotSun* this, PlayState* play) {
         }
 
         //! @bug fairyType may be uninitialized
-        if (GameInteractor_Should(VB_SPAWN_SONG_FAIRY, true, this)) {
-            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ELF, this->actor.home.pos.x, this->actor.home.pos.y,
-                        this->actor.home.pos.z, 0, 0, 0, fairyType);
-        }
+        Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ELF, this->actor.home.pos.x, this->actor.home.pos.y,
+                    this->actor.home.pos.z, 0, 0, 0, fairyType, true);
 
         Actor_Kill(&this->actor);
     }
@@ -116,9 +113,9 @@ void ShotSun_TriggerFairy(ShotSun* this, PlayState* play) {
         this->timer = 50;
 
         Actor_Spawn(&play->actorCtx, play, ACTOR_DEMO_KANKYO, this->actor.home.pos.x, this->actor.home.pos.y,
-                    this->actor.home.pos.z, 0, 0, 0, 0x11);
+                    this->actor.home.pos.z, 0, 0, 0, 0x11, true);
 
-        Sfx_PlaySfxAtPos(&this->actor.projectedPos, NA_SE_EV_TRE_BOX_APPEAR);
+        func_80078914(&this->actor.projectedPos, NA_SE_EV_TRE_BOX_APPEAR);
     }
 }
 
@@ -131,8 +128,8 @@ void func_80BADF0C(ShotSun* this, PlayState* play) {
         this->unk_1A4 = 0;
     } else {
         if (this->unk_1A4 == 0) {
-            if (!(player->stateFlags2 & PLAYER_STATE2_ATTEMPT_PLAY_FOR_ACTOR)) {
-                player->stateFlags2 |= PLAYER_STATE2_NEAR_OCARINA_ACTOR;
+            if (!(player->stateFlags2 & 0x1000000)) {
+                player->stateFlags2 |= 0x800000;
                 return;
             } else {
                 this->unk_1A4 = 1;
@@ -163,14 +160,13 @@ void ShotSun_UpdateHyliaSun(ShotSun* this, PlayState* play) {
     Vec3f spawnPos;
 
     if (this->collider.base.acFlags & AC_HIT) {
-        Sfx_PlaySfxCentered(NA_SE_SY_CORRECT_CHIME);
+        func_80078884(NA_SE_SY_CORRECT_CHIME);
         osSyncPrintf(VT_FGCOL(CYAN) "SHOT_SUN HIT!!!!!!!\n" VT_RST);
-        if (GameInteractor_Should(VB_SPAWN_FIRE_ARROW, INV_CONTENT(ITEM_ARROW_FIRE) == ITEM_NONE)) {
-            Actor_Spawn(&play->actorCtx, play, ACTOR_ITEM_ETCETERA, 700.0f, -800.0f, 7261.0f, 0, 0, 0, 7);
-            if (GameInteractor_Should(VB_PLAY_FIRE_ARROW_CS, true)) {
-                play->csCtx.segment = SEGMENTED_TO_VIRTUAL(gLakeHyliaFireArrowsCS);
-                gSaveContext.cutsceneTrigger = 1;
-            }
+        if ((INV_CONTENT(ITEM_ARROW_FIRE) == ITEM_NONE && !IS_RANDO) ||
+            (!Flags_GetTreasure(play, 0x1F) && IS_RANDO)) {
+            Actor_Spawn(&play->actorCtx, play, ACTOR_ITEM_ETCETERA, 700.0f, -800.0f, 7261.0f, 0, 0, 0, 7, true);
+            play->csCtx.segment = SEGMENTED_TO_VIRTUAL(gLakeHyliaFireArrowsCS);
+            gSaveContext.cutsceneTrigger = 1;
         } else {
             spawnPos.x = 700.0f;
             spawnPos.y = -800.0f;

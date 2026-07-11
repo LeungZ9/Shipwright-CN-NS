@@ -1,2 +1,2 @@
 #!/bin/sh
-exec sudo /opt/homebrew/bin/gtar.orig "$@"
+exec sudo /usr/local/bin/gtar.orig "$@"

@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gShadowTempleTitleCardGERTex[] = dgShadowTemple
 static const ALIGN_ASSET(2) char gShadowTempleTitleCardFRATex[] = dgShadowTempleTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgShadowTempleTitleCardCHITex "__OTR__textures/g_pn_02/gShadowTempleTitleCardCHITex"
 static const ALIGN_ASSET(2) char gShadowTempleTitleCardCHITex[] = dgShadowTempleTitleCardCHITex;

@@ -45,14 +45,11 @@ extern "C"
 	extern OSViContext* __osViNext;
 	extern OSViMode osViModeFpalLan1;
 	extern u32 __additional_scanline;
-	extern const char gBuildVersion[];
+	extern u8 gBuildVersion[];
 	extern u16 gBuildVersionMajor;
 	extern u16 gBuildVersionMinor;
 	extern u16 gBuildVersionPatch;
-	extern const char gGitBranch[];
-	extern const char gGitCommitHash[];
-	extern u8 gGitCommitTag[];
-	extern u8 gBuildTeam[];
+    extern u8 gBuildTeam[];
 	extern u8 gBuildDate[];
 	extern u8 gBuildMakeOption[];
 	extern OSMesgQueue gPiMgrCmdQ;
@@ -97,13 +94,12 @@ extern "C"
 	extern u16 gEquipMasks[4];
 	extern u16 gEquipNegMasks[4];
 	extern u32 gUpgradeMasks[8];
-	extern u32 gUpgradeNegMasks[8];
 	extern u8 gEquipShifts[4];
 	extern u8 gUpgradeShifts[8];
 	extern u16 gUpgradeCapacities[8][4];
 	extern u32 gGsFlagsMasks[4];
 	extern u32 gGsFlagsShifts[4];
-	extern void* gItemIcons[158];
+	extern void* gItemIcons[0x82];
 	extern u8 gItemAgeReqs[];
 	extern u8 gSlotAgeReqs[];
 	extern u8 gItemSlots[56];
@@ -111,7 +107,7 @@ extern "C"
 	extern s16 gLinkObjectIds[2];
 	extern u32 gObjectTableSize;
 	extern RomFile gObjectTable[OBJECT_ID_MAX];
-	extern EntranceInfo gEntranceTable[ENTR_MAX];
+	extern EntranceInfo gEntranceTable[1556];
 	extern SceneTableEntry gSceneTable[SCENE_ID_MAX];
 	extern u16 gSramSlotOffsets[];
 	// 4 16-colors palettes
@@ -120,7 +116,7 @@ extern "C"
 	extern KaleidoMgrOverlay gKaleidoMgrOverlayTable[KALEIDO_OVL_MAX];
 	extern KaleidoMgrOverlay* gKaleidoMgrCurOvl;
 	extern u8 gBossMarkState;
-	extern void* gDebugCutsceneScript;
+	extern void* D_8012D1F0;
 	extern s32 gScreenWidth;
 	extern s32 gScreenHeight;
 	extern Mtx gMtxClear;
@@ -158,9 +154,9 @@ extern "C"
 	extern char D_80133398[];
 	extern SoundBankEntry* gSoundBanks[7];
 	extern u8 gSfxChannelLayout;
-	extern Vec3f gSfxDefaultPos;
-	extern f32 gSfxDefaultFreqAndVolScale;
-	extern s8 gSfxDefaultReverb;
+	extern Vec3f D_801333D4;
+	extern f32 D_801333E0;
+	extern s8 D_801333E8;
 	extern u8 D_801333F0;
 	extern u8 gAudioSfxSwapOff;
 	extern u8 D_80133408;
@@ -172,11 +168,11 @@ extern "C"
 	extern s32 gSystemArenaLogSeverity;
 	extern u8 __osPfsInodeCacheBank;
 	extern s32 __osPfsLastChannel;
-	extern u8 gWalkSpeedToggle;
+	extern u8 gWalkSpeedToggle1;
+	extern u8 gWalkSpeedToggle2;
 	extern f32 iceTrapScale;
 	extern f32 triforcePieceScale;
-	extern f32 mysteryItemScale;
-	
+
 	extern const s16 D_8014A6C0[];
 #define gTatumsPerBeat (D_8014A6C0[1])
 	extern const AudioContextInitSizes D_8014A6C4;
@@ -202,7 +198,7 @@ extern "C"
 	extern f32 gBossMarkScale;
 	extern PauseMapMarksData* gLoadedPauseMarkDataTable;
 	extern s32 gTrnsnUnkState;
-	extern Color_RGBA8_u32 gVisMonoColor;
+	extern Color_RGBA8_u32 D_801614B0;
 	extern PreNmiBuff* gAppNmiBufferPtr;
 	extern SchedContext gSchedContext;
 	extern PadMgr gPadMgr;
@@ -228,7 +224,7 @@ extern "C"
 	extern u16 gAudioSfxSwapSource[10];
 	extern u16 gAudioSfxSwapTarget[10];
 	extern u8 gAudioSfxSwapMode[10];
-	extern ActiveSequence gActiveSeqs[4];
+	extern unk_D_8016E750 D_8016E750[4];
 	extern AudioContext gAudioContext;
 	extern void(*D_801755D0)(void);
 
@@ -246,7 +242,6 @@ extern "C"
 	extern GfxPool gGfxPools[2]; // 0x24820 bytes
 	extern u8* gAudioHeap;
 	extern u8* gSystemHeap;
-	extern GameState* gGameState;
 
 #ifdef __cplusplus
 };

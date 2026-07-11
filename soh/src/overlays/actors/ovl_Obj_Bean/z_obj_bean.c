@@ -8,7 +8,6 @@
 #include "objects/object_mamenoki/object_mamenoki.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "vt.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 #define FLAGS ACTOR_FLAG_IGNORE_POINTLIGHTS
 
@@ -477,7 +476,8 @@ void ObjBean_Init(Actor* thisx, PlayState* play) {
             if (path == 0x1F) {
                 osSyncPrintf(VT_COL(RED, WHITE));
                 // "No path data?"
-                osSyncPrintf("パスデータが無い？(%s %d)(arg_data %xH)\n", __FILE__, __LINE__, this->dyna.actor.params);
+                osSyncPrintf("パスデータが無い？(%s %d)(arg_data %xH)\n", __FILE__, __LINE__,
+                             this->dyna.actor.params);
                 osSyncPrintf(VT_RST);
                 Actor_Kill(&this->dyna.actor);
                 return;
@@ -485,7 +485,8 @@ void ObjBean_Init(Actor* thisx, PlayState* play) {
             if (play->setupPathList[path].count < 3) {
                 osSyncPrintf(VT_COL(RED, WHITE));
                 // "Incorrect number of path data"
-                osSyncPrintf("パスデータ数が不正(%s %d)(arg_data %xH)\n", __FILE__, __LINE__, this->dyna.actor.params);
+                osSyncPrintf("パスデータ数が不正(%s %d)(arg_data %xH)\n", __FILE__, __LINE__,
+                             this->dyna.actor.params);
                 osSyncPrintf(VT_RST);
                 Actor_Kill(&this->dyna.actor);
                 return;
@@ -551,9 +552,7 @@ void ObjBean_WaitForBean(ObjBean* this, PlayState* play) {
 void func_80B8FE00(ObjBean* this) {
     this->actionFunc = func_80B8FE3C;
     ObjBean_SetDrawMode(this, BEAN_STATE_DRAW_LEAVES);
-    if (GameInteractor_Should(VB_PLAY_BEAN_PLANTING_CS, true)) {
-        this->timer = 60;
-    }
+    this->timer = 60;
 }
 
 // Link is looking at the soft soil
@@ -640,7 +639,7 @@ void ObjBean_WaitForWater(ObjBean* this, PlayState* play) {
         ObjBean_SetupGrowWaterPhase1(this);
         D_80B90E30 = this;
         OnePointCutscene_Init(play, 2210, -99, &this->dyna.actor, MAIN_CAM);
-        this->dyna.actor.flags |= ACTOR_FLAG_UPDATE_CULLING_DISABLED;
+        this->dyna.actor.flags |= ACTOR_FLAG_UPDATE_WHILE_CULLED;
         return;
     }
 
@@ -702,14 +701,12 @@ void ObjBean_GrowWaterPhase3(ObjBean* this, PlayState* play) {
             itemDropPos.x = this->dyna.actor.world.pos.x;
             itemDropPos.y = this->dyna.actor.world.pos.y - 25.0f;
             itemDropPos.z = this->dyna.actor.world.pos.z;
-            if (GameInteractor_Should(VB_SPAWN_BEAN_STALK_FAIRIES, true, this)) {
-                for (i = 0; i < 3; i++) {
-                    Item_DropCollectible(play, &itemDropPos, ITEM00_FLEXIBLE);
-                }
+            for (i = 0; i < 3; i++) {
+                Item_DropCollectible(play, &itemDropPos, ITEM00_FLEXIBLE);
             }
             this->stateFlags |= BEAN_STATE_BEEN_WATERED;
             Audio_PlayActorSound2(&this->dyna.actor, NA_SE_EV_BUTTERFRY_TO_FAIRY);
-            Sfx_PlaySfxCentered(NA_SE_SY_TRE_BOX_APPEAR);
+            func_80078884(NA_SE_SY_TRE_BOX_APPEAR);
         }
     } else if (this->timer <= 0) {
         ObjBean_SetupGrowWaterPhase4(this);
@@ -745,7 +742,7 @@ void ObjBean_GrowWaterPhase5(ObjBean* this, PlayState* play) {
     this->transformFunc(this);
     if (this->timer <= 0) {
         func_80B8FF50(this);
-        this->dyna.actor.flags &= ~ACTOR_FLAG_UPDATE_CULLING_DISABLED;
+        this->dyna.actor.flags &= ~ACTOR_FLAG_UPDATE_WHILE_CULLED;
     }
 }
 
@@ -755,7 +752,7 @@ void ObjBean_SetupWaitForPlayer(ObjBean* this) {
 }
 
 void ObjBean_WaitForPlayer(ObjBean* this, PlayState* play) {
-    if (DynaPolyActor_IsPlayerOnTop(&this->dyna)) { // Player is standing on
+    if (func_8004356C(&this->dyna)) { // Player is standing on
         ObjBean_SetupFly(this);
         if (play->sceneNum == SCENE_LOST_WOODS) { // Lost woods
             Camera_ChangeSetting(play->cameraPtrs[MAIN_CAM], CAM_SET_BEAN_LOST_WOODS);
@@ -770,7 +767,7 @@ void ObjBean_SetupFly(ObjBean* this) {
     this->actionFunc = ObjBean_Fly;
     ObjBean_SetDrawMode(this, BEAN_STATE_DRAW_PLANT);
     this->dyna.actor.speedXZ = 0.0f;
-    this->dyna.actor.flags |= ACTOR_FLAG_UPDATE_CULLING_DISABLED; // Never stop updating
+    this->dyna.actor.flags |= ACTOR_FLAG_UPDATE_WHILE_CULLED; // Never stop updating
 }
 
 void ObjBean_Fly(ObjBean* this, PlayState* play) {
@@ -782,14 +779,14 @@ void ObjBean_Fly(ObjBean* this, PlayState* play) {
         ObjBean_SetupPath(this, play);
         ObjBean_SetupWaitForStepOff(this);
 
-        this->dyna.actor.flags &= ~ACTOR_FLAG_UPDATE_CULLING_DISABLED; // Never stop updating (disable)
+        this->dyna.actor.flags &= ~ACTOR_FLAG_UPDATE_WHILE_CULLED; // Never stop updating (disable)
         camera = play->cameraPtrs[MAIN_CAM];
 
         if ((camera->setting == CAM_SET_BEAN_LOST_WOODS) || (camera->setting == CAM_SET_BEAN_GENERIC)) {
             Camera_ChangeSetting(camera, CAM_SET_NORMAL0);
         }
 
-    } else if (DynaPolyActor_IsPlayerOnTop(&this->dyna) != 0) { // Player is on top
+    } else if (func_8004356C(&this->dyna) != 0) { // Player is on top
 
         func_8002F974(&this->dyna.actor, NA_SE_PL_PLANT_MOVE - SFX_FLAG);
 
@@ -815,7 +812,7 @@ void ObjBean_SetupWaitForStepOff(ObjBean* this) {
 }
 
 void ObjBean_WaitForStepOff(ObjBean* this, PlayState* play) {
-    if (!DynaPolyActor_IsPlayerAbove(&this->dyna)) {
+    if (!func_80043590(&this->dyna)) {
         ObjBean_SetupWaitForPlayer(this);
     }
     ObjBean_UpdatePosition(this);
@@ -827,7 +824,7 @@ void func_80B908EC(ObjBean* this) {
 }
 
 void func_80B90918(ObjBean* this, PlayState* play) {
-    if (!DynaPolyActor_IsPlayerOnTop(&this->dyna)) {
+    if (!func_8004356C(&this->dyna)) {
         ObjBean_SetupPathCount(this, play);
         ObjBean_SetupPath(this, play);
         ObjBean_Move(this);
@@ -907,7 +904,7 @@ void ObjBean_Update(Actor* thisx, PlayState* play) {
     }
     Actor_SetFocus(&this->dyna.actor, 6.0f);
     if (this->stateFlags & BEAN_STATE_DYNAPOLY_SET) {
-        if (DynaPolyActor_IsPlayerOnTop(&this->dyna)) {
+        if (func_8004356C(&this->dyna)) {
             this->stateFlags |= BEAN_STATE_PLAYER_ON_TOP;
         } else {
             this->stateFlags &= ~BEAN_STATE_PLAYER_ON_TOP;

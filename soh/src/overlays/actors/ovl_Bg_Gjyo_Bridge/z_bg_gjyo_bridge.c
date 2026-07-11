@@ -7,7 +7,6 @@
 #include "z_bg_gjyo_bridge.h"
 #include "objects/object_gjyo_objects/object_gjyo_objects.h"
 #include "scenes/dungeons/ganon_tou/ganon_tou_scene.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 #define FLAGS 0
 
@@ -51,7 +50,8 @@ void BgGjyoBridge_Init(Actor* thisx, PlayState* play) {
 
     this->dyna.bgId = DynaPoly_SetBgActor(play, &play->colCtx.dyna, thisx, colHeader);
 
-    if (Flags_GetEventChkInf(EVENTCHKINF_RAINBOW_BRIDGE_BUILT)) {
+    int bridge = Randomizer_GetSettingValue(RSK_RAINBOW_BRIDGE);
+    if (Flags_GetEventChkInf(EVENTCHKINF_RAINBOW_BRIDGE_BUILT) || (IS_RANDO && bridge == RO_BRIDGE_ALWAYS_OPEN)) {
         this->actionFunc = func_808787A4;
     } else {
         this->dyna.actor.draw = NULL;
@@ -70,10 +70,8 @@ void func_808787A4(BgGjyoBridge* this, PlayState* play) {
 }
 
 void LaunchBridgeCutscene(BgGjyoBridge* this, PlayState* play) {
-    if (GameInteractor_Should(VB_PLAY_RAINBOW_BRIDGE_CS, true)) {
-        play->csCtx.segment = SEGMENTED_TO_VIRTUAL(gRainbowBridgeCs);
-        gSaveContext.cutsceneTrigger = 1;
-    }
+    play->csCtx.segment = SEGMENTED_TO_VIRTUAL(gRainbowBridgeCs);
+    gSaveContext.cutsceneTrigger = 1;
     this->actionFunc = BgGjyoBridge_SpawnBridge;
 }
 
@@ -86,20 +84,70 @@ u8 CheckPlayerPosition(Player* player, PlayState* play) {
 void BgGjyoBridge_TriggerCutscene(BgGjyoBridge* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
-    u8 vanillaBridgeCondition = CHECK_QUEST_ITEM(QUEST_MEDALLION_SPIRIT) && CHECK_QUEST_ITEM(QUEST_MEDALLION_SHADOW) &&
-                                (INV_CONTENT(ITEM_ARROW_LIGHT) == ITEM_ARROW_LIGHT) &&
-                                CheckPlayerPosition(player, play);
+    if (!IS_RANDO) {
+        if (CHECK_QUEST_ITEM(QUEST_MEDALLION_SPIRIT) && CHECK_QUEST_ITEM(QUEST_MEDALLION_SHADOW) &&
+            (INV_CONTENT(ITEM_ARROW_LIGHT) == ITEM_ARROW_LIGHT) && CheckPlayerPosition(player, play)) {
+            LaunchBridgeCutscene(this, play);
+        }
+    } else {
+        int bridge = Randomizer_GetSettingValue(RSK_RAINBOW_BRIDGE);
+        int bridgeStoneCount = Randomizer_GetSettingValue(RSK_RAINBOW_BRIDGE_STONE_COUNT);
+        int bridgeMedallionCount = Randomizer_GetSettingValue(RSK_RAINBOW_BRIDGE_MEDALLION_COUNT);
+        int bridgeRewardCount = Randomizer_GetSettingValue(RSK_RAINBOW_BRIDGE_REWARD_COUNT);
+        int bridgeDungeonCount = Randomizer_GetSettingValue(RSK_RAINBOW_BRIDGE_DUNGEON_COUNT);
+        int bridgeTokenCount = Randomizer_GetSettingValue(RSK_RAINBOW_BRIDGE_TOKEN_COUNT);
 
-    if (GameInteractor_Should(VB_BE_ELIGIBLE_FOR_RAINBOW_BRIDGE, vanillaBridgeCondition)) {
-        LaunchBridgeCutscene(this, play);
+        switch (bridge) {
+            case RO_BRIDGE_VANILLA:
+                if (CHECK_QUEST_ITEM(QUEST_MEDALLION_SPIRIT) && CHECK_QUEST_ITEM(QUEST_MEDALLION_SHADOW) &&
+                    (INV_CONTENT(ITEM_ARROW_LIGHT) == ITEM_ARROW_LIGHT)) {
+                    this->actionFunc = BgGjyoBridge_SpawnBridge;
+                    func_800F595C(NA_BGM_BRIDGE_TO_GANONS);
+                }
+                break;
+            case RO_BRIDGE_STONES:
+                if ((CheckStoneCount() + CheckBridgeRewardCount()) >= bridgeStoneCount) {
+                    this->actionFunc = BgGjyoBridge_SpawnBridge;
+                    func_800F595C(NA_BGM_BRIDGE_TO_GANONS);
+                }
+                break;
+            case RO_BRIDGE_MEDALLIONS:
+                if ((CheckMedallionCount() + CheckBridgeRewardCount()) >= bridgeMedallionCount) {
+                    this->actionFunc = BgGjyoBridge_SpawnBridge;
+                    func_800F595C(NA_BGM_BRIDGE_TO_GANONS);
+                }
+                break;
+            case RO_BRIDGE_DUNGEON_REWARDS:
+                if ((CheckMedallionCount() + CheckStoneCount() + CheckBridgeRewardCount()) >= bridgeRewardCount) {
+                    this->actionFunc = BgGjyoBridge_SpawnBridge;
+                    func_800F595C(NA_BGM_BRIDGE_TO_GANONS);
+                }
+                break;
+            case RO_BRIDGE_DUNGEONS:
+                if ((CheckDungeonCount() + CheckBridgeRewardCount()) >= bridgeDungeonCount) {
+                    this->actionFunc = BgGjyoBridge_SpawnBridge;
+                    func_800F595C(NA_BGM_BRIDGE_TO_GANONS);
+                }
+                break;
+            case RO_BRIDGE_TOKENS:
+                if (gSaveContext.inventory.gsTokens >= bridgeTokenCount) {
+                    this->actionFunc = BgGjyoBridge_SpawnBridge;
+                    func_800F595C(NA_BGM_BRIDGE_TO_GANONS);
+                }
+                break;
+            case RO_BRIDGE_GREG:
+                if (Flags_GetRandomizerInf(RAND_INF_GREG_FOUND)) {
+                    this->actionFunc = BgGjyoBridge_SpawnBridge;
+                    func_800F595C(NA_BGM_BRIDGE_TO_GANONS);
+                }
+                break;
+        }
     }
 }
 
 void BgGjyoBridge_SpawnBridge(BgGjyoBridge* this, PlayState* play) {
-    u8 vanillaBridgeCondition = (play->csCtx.state != CS_STATE_IDLE) && (play->csCtx.npcActions[2] != NULL) &&
-                                (play->csCtx.npcActions[2]->action == 2);
-
-    if (!GameInteractor_Should(VB_PLAY_RAINBOW_BRIDGE_CS, true) || vanillaBridgeCondition) {
+    if (IS_RANDO || (play->csCtx.state != CS_STATE_IDLE) && (play->csCtx.npcActions[2] != NULL) &&
+        (play->csCtx.npcActions[2]->action == 2)) {
         this->dyna.actor.draw = BgGjyoBridge_Draw;
         func_8003EC50(play, &play->colCtx.dyna, this->dyna.bgId);
         Flags_SetEventChkInf(EVENTCHKINF_RAINBOW_BRIDGE_BUILT);
@@ -120,14 +168,15 @@ void BgGjyoBridge_Draw(Actor* thisx, PlayState* play) {
     Gfx_SetupDL_25Xlu(play->state.gfxCtx);
 
     gSPSegment(POLY_XLU_DISP++, 8,
-               Gfx_TexScrollEx(play->state.gfxCtx, play->gameplayFrames & 127, play->gameplayFrames * -3 & 127, 32, 32,
-                               1, -3));
+               Gfx_TexScroll(play->state.gfxCtx, play->gameplayFrames & 127,
+                             play->gameplayFrames * -3 & 127, 32, 32));
 
     gSPSegment(POLY_XLU_DISP++, 9,
-               Gfx_TwoTexScrollEx(play->state.gfxCtx, 0, 0, -play->gameplayFrames & 127, 32, 32, 1, 0,
-                                  play->gameplayFrames & 127, 32, 32, 0, -1, 0, 1));
+               Gfx_TwoTexScroll(play->state.gfxCtx, 0, 0, -play->gameplayFrames & 127, 32, 32, 1, 0,
+                                play->gameplayFrames & 127, 32, 32));
 
-    gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
     gSPDisplayList(POLY_XLU_DISP++, gRainbowBridgeDL);
 

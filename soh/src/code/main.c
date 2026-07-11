@@ -1,6 +1,5 @@
 #ifdef _WIN32
 #include <Windows.h>
-#include <locale.h>
 #endif
 
 #include "global.h"
@@ -10,7 +9,7 @@
 #include "soh/OTRGlobals.h"
 
 #include <libultraship/bridge.h>
-#include "soh/CrashHandlerExt.h"
+#include "soh/CrashHandlerExp.h"
 
 s32 gScreenWidth = SCREEN_WIDTH;
 s32 gScreenHeight = SCREEN_HEIGHT;
@@ -45,7 +44,8 @@ void Main_LogSystemHeap(void) {
 }
 
 #ifdef _WIN32
-int SDL_main(int argc, char* argv[]) {
+int SDL_main(int argc, char** argv)
+{
     AllocConsole();
     (void)freopen("CONIN$", "r", stdin);
     (void)freopen("CONOUT$", "w", stdout);
@@ -53,14 +53,14 @@ int SDL_main(int argc, char* argv[]) {
 #ifndef _DEBUG
     ShowWindow(GetConsoleWindow(), SW_HIDE);
 #endif
-    // Allow non-ascii characters for Windows
-    setlocale(LC_ALL, ".UTF8");
 
 #else //_WIN32
-int main(int argc, char* argv[]) {
+int main(int argc, char** argv)
+{
 #endif
+
     GameConsole_Init();
-    InitOTR(argc, argv);
+    InitOTR();
     // TODO: Was moved to below InitOTR because it requires window to be setup. But will be late to catch crashes.
     CrashHandlerRegisterCallback(CrashHandler_PrintSohData);
     BootCommands_Init();

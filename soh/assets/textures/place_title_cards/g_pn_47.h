@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gBombchuBowlingAlleyCardGERTex[] = dgBombchuBow
 static const ALIGN_ASSET(2) char gBombchuBowlingAlleyCardFRATex[] = dgBombchuBowlingAlleyCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgBombchuBowlingAlleyCardCHITex "__OTR__textures/g_pn_47/gBombchuBowlingAlleyCardCHITex"
 static const ALIGN_ASSET(2) char gBombchuBowlingAlleyCardCHITex[] = dgBombchuBowlingAlleyCardCHITex;

@@ -1,9 +1,7 @@
 #include "z_en_ma2.h"
 #include "objects/object_ma2/object_ma2.h"
 
-#define FLAGS                                                                                  \
-    (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED | \
-     ACTOR_FLAG_DRAW_CULLING_DISABLED | ACTOR_FLAG_UPDATE_DURING_OCARINA)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_WHILE_CULLED | ACTOR_FLAG_DRAW_WHILE_CULLED | ACTOR_FLAG_NO_FREEZE_OCARINA)
 
 void EnMa2_Init(Actor* thisx, PlayState* play);
 void EnMa2_Destroy(Actor* thisx, PlayState* play);
@@ -259,7 +257,7 @@ void EnMa2_Destroy(Actor* thisx, PlayState* play) {
 
 void func_80AA2018(EnMa2* this, PlayState* play) {
     if (this->interactInfo.talkState == NPC_TALK_STATE_ACTION) {
-        this->actor.flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
+        this->actor.flags &= ~ACTOR_FLAG_WILL_TALK;
         this->interactInfo.talkState = NPC_TALK_STATE_IDLE;
     }
 }
@@ -267,13 +265,13 @@ void func_80AA2018(EnMa2* this, PlayState* play) {
 void func_80AA204C(EnMa2* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
-    if (player->stateFlags2 & PLAYER_STATE2_ATTEMPT_PLAY_FOR_ACTOR) {
+    if (player->stateFlags2 & 0x1000000) {
         player->unk_6A8 = &this->actor;
-        player->stateFlags2 |= PLAYER_STATE2_PLAY_FOR_ACTOR;
+        player->stateFlags2 |= 0x2000000;
         func_8010BD58(play, OCARINA_ACTION_CHECK_EPONA);
         this->actionFunc = func_80AA20E4;
     } else if (this->actor.xzDistToPlayer < 30.0f + (f32)this->collider.dim.radius) {
-        player->stateFlags2 |= PLAYER_STATE2_NEAR_OCARINA_ACTOR;
+        player->stateFlags2 |= 0x800000;
     }
 }
 
@@ -284,14 +282,13 @@ void func_80AA20E4(EnMa2* this, PlayState* play) {
         this->actionFunc = func_80AA204C;
         play->msgCtx.ocarinaMode = OCARINA_MODE_04;
     } else if (play->msgCtx.ocarinaMode == OCARINA_MODE_03) {
-        Audio_PlaySoundGeneral(NA_SE_SY_CORRECT_CHIME, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+        Audio_PlaySoundGeneral(NA_SE_SY_CORRECT_CHIME, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
         this->unk_208 = 0x1E;
         Flags_SetInfTable(INFTABLE_8E);
         this->actionFunc = func_80AA21C8;
         play->msgCtx.ocarinaMode = OCARINA_MODE_04;
     } else {
-        player->stateFlags2 |= PLAYER_STATE2_NEAR_OCARINA_ACTOR;
+        player->stateFlags2 |= 0x800000;
     }
 }
 
@@ -299,13 +296,13 @@ void func_80AA21C8(EnMa2* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
     if (DECR(this->unk_208)) {
-        player->stateFlags2 |= PLAYER_STATE2_NEAR_OCARINA_ACTOR;
+        player->stateFlags2 |= 0x800000;
     } else {
         if (this->interactInfo.talkState == NPC_TALK_STATE_IDLE) {
-            this->actor.flags |= ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
+            this->actor.flags |= ACTOR_FLAG_WILL_TALK;
             Message_CloseTextbox(play);
         } else {
-            this->actor.flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
+            this->actor.flags &= ~ACTOR_FLAG_WILL_TALK;
             this->actionFunc = func_80AA2018;
         }
     }

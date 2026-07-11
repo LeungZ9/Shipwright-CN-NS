@@ -1,19 +1,33 @@
 #include "soh/resource/importer/AnimationFactory.h"
 #include "soh/resource/type/Animation.h"
-#include <ship/resource/ResourceManager.h>
 #include "spdlog/spdlog.h"
-#include <ship/Context.h>
 
-namespace SOH {
-std::shared_ptr<Ship::IResource>
-ResourceFactoryBinaryAnimationV0::ReadResource(std::shared_ptr<Ship::File> file,
-                                               std::shared_ptr<Ship::ResourceInitData> initData) {
-    if (!FileHasValidFormatAndReader(file, initData)) {
+namespace LUS {
+std::shared_ptr<IResource>
+AnimationFactory::ReadResource(std::shared_ptr<ResourceInitData> initData, std::shared_ptr<BinaryReader> reader) {
+    auto resource = std::make_shared<Animation>(initData);
+    std::shared_ptr<ResourceVersionFactory> factory = nullptr;
+
+    switch (resource->GetInitData()->ResourceVersion) {
+        case 0:
+            factory = std::make_shared<AnimationFactoryV0>();
+            break;
+    }
+
+    if (factory == nullptr) {
+        SPDLOG_ERROR("Failed to load Animation with version {}", resource->GetInitData()->ResourceVersion);
         return nullptr;
     }
 
-    auto animation = std::make_shared<Animation>(initData);
-    auto reader = std::get<std::shared_ptr<Ship::BinaryReader>>(file->Reader);
+    factory->ParseFileBinary(reader, resource);
+
+    return resource;
+}
+
+void LUS::AnimationFactoryV0::ParseFileBinary(std::shared_ptr<BinaryReader> reader, std::shared_ptr<IResource> resource) {
+    std::shared_ptr<Animation> animation = std::static_pointer_cast<Animation>(resource);
+
+    ResourceVersionFactory::ParseFileBinary(reader, animation);
 
     AnimationType animType = (AnimationType)reader->ReadUInt32();
     animation->type = animType;
@@ -82,15 +96,9 @@ ResourceFactoryBinaryAnimationV0::ReadResource(std::shared_ptr<Ship::File> file,
         animation->animationData.linkAnimationHeader.common.frameCount = reader->ReadInt16();
 
         // Read the segment pointer (always 32 bit, doesn't adjust for system pointer size)
-        std::string path = reader->ReadString();
-        const auto animData = std::static_pointer_cast<Animation>(
-            Ship::Context::GetInstance()->GetResourceManager()->LoadResourceProcess(path.c_str()));
-
-        animation->animationData.linkAnimationHeader.segment = animData->GetPointer();
+        animation->animationData.linkAnimationHeader.segment = (void*)reader->ReadUInt32();
     } else if (animType == AnimationType::Legacy) {
         SPDLOG_DEBUG("BEYTAH ANIMATION?!");
     }
-
-    return animation;
 }
-} // namespace SOH
+} // namespace LUS

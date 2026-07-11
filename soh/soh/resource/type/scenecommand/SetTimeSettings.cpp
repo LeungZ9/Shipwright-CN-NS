@@ -1,11 +1,11 @@
 #include "SetTimeSettings.h"
 
-namespace SOH {
+namespace LUS {
 TimeSettings* SetTimeSettings::GetPointer() {
     return &settings;
 }
 
 size_t SetTimeSettings::GetPointerSize() {
-    return sizeof(TimeSettings);
+	return sizeof(TimeSettings);
 }
-} // namespace SOH
+} // namespace LUS

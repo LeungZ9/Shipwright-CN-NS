@@ -1,14 +1,14 @@
 /*
  * File: z_bg_mizu_movebg.c
  * Overlay: ovl_Bg_Mizu_Movebg
- * Description: Water Temple Moving Objects
+ * Description: Kakariko Village Well Water
  */
 
 #include "z_bg_mizu_movebg.h"
 #include "overlays/actors/ovl_Bg_Mizu_Water/z_bg_mizu_water.h"
 #include "objects/object_mizu_objects/object_mizu_objects.h"
 
-#define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
+#define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
 #define MOVEBG_TYPE(params) (((u16)(params) >> 0xC) & 0xF)
 #define MOVEBG_FLAGS(params) ((u16)(params)&0x3F)
@@ -158,9 +158,10 @@ void BgMizuMovebg_Init(Actor* thisx, PlayState* play) {
             Matrix_RotateY(thisx->world.rot.y * (M_PI / 32768), MTXMODE_NEW);
             Matrix_MultVec3f(&D_8089EBA0, &sp48);
 
-            if (Actor_SpawnAsChild(&play->actorCtx, thisx, play, ACTOR_OBJ_HSBLOCK, thisx->world.pos.x + sp48.x,
-                                   thisx->world.pos.y + sp48.y, thisx->world.pos.z + sp48.z, thisx->world.rot.x,
-                                   thisx->world.rot.y, thisx->world.rot.z, 2) == NULL) {
+            if (Actor_SpawnAsChild(&play->actorCtx, thisx, play, ACTOR_OBJ_HSBLOCK,
+                                   thisx->world.pos.x + sp48.x, thisx->world.pos.y + sp48.y,
+                                   thisx->world.pos.z + sp48.z, thisx->world.rot.x, thisx->world.rot.y,
+                                   thisx->world.rot.z, 2) == NULL) {
                 Actor_Kill(thisx);
             }
             break;
@@ -310,7 +311,7 @@ void func_8089E318(BgMizuMovebg* this, PlayState* play) {
                 this->dyna.actor.child->world.pos.x = this->dyna.actor.world.pos.x + sp28.x;
                 this->dyna.actor.child->world.pos.y = this->dyna.actor.world.pos.y + sp28.y;
                 this->dyna.actor.child->world.pos.z = this->dyna.actor.world.pos.z + sp28.z;
-                this->dyna.actor.child->flags &= ~ACTOR_FLAG_ATTENTION_ENABLED;
+                this->dyna.actor.child->flags &= ~ACTOR_FLAG_TARGETABLE;
             }
             break;
     }
@@ -330,7 +331,7 @@ void func_8089E650(BgMizuMovebg* this, PlayState* play) {
         this->dyna.actor.speedXZ = dist;
     }
     func_80035844(&this->dyna.actor.world.pos, &waypoint, &this->dyna.actor.world.rot, 1);
-    Actor_MoveXYZ(&this->dyna.actor);
+    func_8002D97C(&this->dyna.actor);
     dx = waypoint.x - this->dyna.actor.world.pos.x;
     dy = waypoint.y - this->dyna.actor.world.pos.y;
     dz = waypoint.z - this->dyna.actor.world.pos.z;
@@ -338,7 +339,8 @@ void func_8089E650(BgMizuMovebg* this, PlayState* play) {
         this->waypointId++;
         if (this->waypointId >= play->setupPathList[MOVEBG_PATH_ID(this->dyna.actor.params)].count) {
             this->waypointId = 0;
-            func_8089E108(play->setupPathList, &this->dyna.actor.world.pos, MOVEBG_PATH_ID(this->dyna.actor.params), 0);
+            func_8089E108(play->setupPathList, &this->dyna.actor.world.pos,
+                          MOVEBG_PATH_ID(this->dyna.actor.params), 0);
         }
     }
     if (!(D_8089EE40 & 1) && MOVEBG_SPEED(this->dyna.actor.params) != 0) {
@@ -367,22 +369,23 @@ void BgMizuMovebg_Draw(Actor* thisx, PlayState* play2) {
     Gfx_SetupDL_25Opa(play->state.gfxCtx);
 
     gSPSegment(POLY_OPA_DISP++, 0x08,
-               Gfx_TwoTexScrollEnvColorEx(play->state.gfxCtx, 0, frames * 1, 0, 32, 32, 1, 0, 0, 32, 32, 0, 0, 0,
-                                          this->scrollAlpha1, 1, 0, 0, 0));
+               Gfx_TwoTexScrollEnvColor(play->state.gfxCtx, 0, frames * 1, 0, 32, 32, 1, 0, 0, 32, 32, 0, 0, 0,
+                                        this->scrollAlpha1));
 
     gSPSegment(POLY_OPA_DISP++, 0x09,
-               Gfx_TwoTexScrollEnvColorEx(play->state.gfxCtx, 0, frames * 1, 0, 32, 32, 1, 0, 0, 32, 32, 0, 0, 0,
-                                          this->scrollAlpha2, 1, 0, 0, 0));
+               Gfx_TwoTexScrollEnvColor(play->state.gfxCtx, 0, frames * 1, 0, 32, 32, 1, 0, 0, 32, 32, 0, 0, 0,
+                                        this->scrollAlpha2));
 
     gSPSegment(POLY_OPA_DISP++, 0x0A,
-               Gfx_TwoTexScrollEnvColorEx(play->state.gfxCtx, 0, frames * 1, 0, 32, 32, 1, 0, 0, 32, 32, 0, 0, 0,
-                                          this->scrollAlpha3, 1, 0, 0, 0));
+               Gfx_TwoTexScrollEnvColor(play->state.gfxCtx, 0, frames * 1, 0, 32, 32, 1, 0, 0, 32, 32, 0, 0, 0,
+                                        this->scrollAlpha3));
 
     gSPSegment(POLY_OPA_DISP++, 0x0B,
-               Gfx_TwoTexScrollEnvColorEx(play->state.gfxCtx, 0, frames * 3, 0, 32, 32, 1, 0, 0, 32, 32, 0, 0, 0,
-                                          this->scrollAlpha4, 3, 0, 0, 0));
+               Gfx_TwoTexScrollEnvColor(play->state.gfxCtx, 0, frames * 3, 0, 32, 32, 1, 0, 0, 32, 32, 0, 0, 0,
+                                        this->scrollAlpha4));
 
-    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
     if (this->dlist != NULL) {
         gSPDisplayList(POLY_OPA_DISP++, this->dlist);

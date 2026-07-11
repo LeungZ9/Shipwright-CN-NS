@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gGERudoTrainingGroundTitleCardGERTex[] = dgGERu
 static const ALIGN_ASSET(2) char gGERudoTrainingGroundTitleCardFRATex[] = dgGERudoTrainingGroundTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgGERudoTrainingGroundTitleCardCHITex "__OTR__textures/g_pn_11/gGERudoTrainingGroundTitleCardCHITex"
 static const ALIGN_ASSET(2) char gGERudoTrainingGroundTitleCardCHITex[] = dgGERudoTrainingGroundTitleCardCHITex;

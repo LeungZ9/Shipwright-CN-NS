@@ -17,6 +17,4 @@ typedef struct ObjComb {
     /* 0x01B2 */ s16 unk_1B2;
 } ObjComb; // size = 0x01B4
 
-void ObjComb_Break(ObjComb* objComb, PlayState* play);
-
 #endif

@@ -8,8 +8,6 @@
 /* Dirt particle effect */
 struct EnTkEff;
 
-#define COLLECTFLAG_GRAVEDIGGING_HEART_PIECE 0x19
-
 typedef struct EnTkEff {
     /* 0x0000 */ u8         active;
     /* 0x0001 */ u8         timeLeft;

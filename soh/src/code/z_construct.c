@@ -1,7 +1,6 @@
 #include "global.h"
 #include <textures/do_action_static/do_action_static.h>
 #include <assert.h>
-#include "soh/ResourceManagerHelpers.h"
 
 void func_80110990(PlayState* play) {
     Map_Destroy(play);
@@ -10,7 +9,7 @@ void func_80110990(PlayState* play) {
 void func_801109B0(PlayState* play) {
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
     u32 parameterSize;
-    u8 timerId;
+    u8 temp;
 
     gSaveContext.sunsSongState = SUNSSONG_INACTIVE;
     gSaveContext.unk_13E8 = gSaveContext.unk_13EA = 0;
@@ -54,8 +53,8 @@ void func_801109B0(PlayState* play) {
     interfaceCtx->doActionSegment[1] = gCheckDoActionENGTex;
     interfaceCtx->doActionSegment[2] = gReturnDoActionENGTex;
 
-    interfaceCtx->iconItemSegment =
-        GAMESTATE_ALLOC_MC(&play->state, 0x1000 * ARRAY_COUNT(gSaveContext.equips.buttonItems));
+    interfaceCtx->iconItemSegment = GAMESTATE_ALLOC_MC(
+        &play->state, 0x1000 * ARRAY_COUNT(gSaveContext.equips.buttonItems));
 
     // "Icon Item Texture Initialization = %x"
     osSyncPrintf("アイコンアイテム テクスチャ初期=%x\n", 0x4000);
@@ -81,42 +80,39 @@ void func_801109B0(PlayState* play) {
         }
     }
 
-    osSyncPrintf("ＥＶＥＮＴ＝%d\n", ((void)0, gSaveContext.timerState));
+    osSyncPrintf("ＥＶＥＮＴ＝%d\n", ((void)0, gSaveContext.timer1State));
 
-    if ((gSaveContext.timerState == TIMER_STATE_ENV_HAZARD_TICK) ||
-        (gSaveContext.timerState == TIMER_STATE_DOWN_TICK) ||
-        (gSaveContext.subTimerState == SUBTIMER_STATE_DOWN_TICK) ||
-        (gSaveContext.subTimerState == SUBTIMER_STATE_UP_TICK)) {
+    if ((gSaveContext.timer1State == 4) || (gSaveContext.timer1State == 8) || (gSaveContext.timer2State == 4) ||
+        (gSaveContext.timer2State == 10)) {
         osSyncPrintf("restart_flag=%d\n", ((void)0, gSaveContext.respawnFlag));
 
         if ((gSaveContext.respawnFlag == -1) || (gSaveContext.respawnFlag == 1)) {
-            if (gSaveContext.timerState == TIMER_STATE_ENV_HAZARD_TICK) {
-                gSaveContext.timerState = TIMER_STATE_ENV_HAZARD_INIT;
-                gSaveContext.timerX[TIMER_ID_MAIN] = 140;
-                gSaveContext.timerY[TIMER_ID_MAIN] = 80;
+            if (gSaveContext.timer1State == 4) {
+                gSaveContext.timer1State = 1;
+                gSaveContext.timerX[0] = 140;
+                gSaveContext.timerY[0] = 80;
             }
         }
 
-        if ((gSaveContext.timerState == TIMER_STATE_ENV_HAZARD_TICK) ||
-            (gSaveContext.timerState == TIMER_STATE_DOWN_TICK)) {
-            timerId = TIMER_ID_MAIN;
+        if ((gSaveContext.timer1State == 4) || (gSaveContext.timer1State == 8)) {
+            temp = 0;
         } else {
-            timerId = TIMER_ID_SUB;
+            temp = 1;
         }
 
-        gSaveContext.timerX[timerId] = 26;
+        gSaveContext.timerX[temp] = 26;
 
         if (gSaveContext.healthCapacity > 0xA0) {
-            gSaveContext.timerY[timerId] = 54;
+            gSaveContext.timerY[temp] = 54;
         } else {
-            gSaveContext.timerY[timerId] = 46;
+            gSaveContext.timerY[temp] = 46;
         }
     }
 
-    if ((gSaveContext.timerState >= TIMER_STATE_UP_INIT) && (gSaveContext.timerState <= TIMER_STATE_UP_FREEZE)) {
-        gSaveContext.timerState = TIMER_STATE_OFF;
+    if ((gSaveContext.timer1State >= 11) && (gSaveContext.timer1State < 16)) {
+        gSaveContext.timer1State = 0;
         // "Timer Stop!!!!!!!!!!!!!!!!!!!!!!"
-        osSyncPrintf("タイマー停止！！！！！！！！！！！！！！！！！！！！！  = %d\n", gSaveContext.timerState);
+        osSyncPrintf("タイマー停止！！！！！！！！！！！！！！！！！！！！！  = %d\n", gSaveContext.timer1State);
     }
 
     osSyncPrintf("ＰＡＲＡＭＥＴＥＲ領域＝%x\n", parameterSize + 0x5300); // "Parameter Area = %x"
@@ -161,11 +157,7 @@ void Message_Init(PlayState* play) {
     osSyncPrintf("吹き出しgame_alloc=%x\n", 0x2200); // "Textbox game_alloc=%x"
     assert(msgCtx->textboxSegment != NULL);
 
-    if (ResourceMgr_GetGameRegion(0) == GAME_REGION_PAL && gSaveContext.language != LANGUAGE_JPN) {
-        Font_LoadOrderedFont(&play->msgCtx.font);
-    } else { // GAME_REGION_NTSC
-        Font_LoadOrderedFontNTSC(&play->msgCtx.font);
-    }
+    Font_LoadOrderedFont(&play->msgCtx.font);
 
     YREG(31) = 0;
 }
@@ -438,9 +430,7 @@ void Regs_InitDataImpl(void) {
     WREG(28) = 0;
     R_OW_MINIMAP_X = 238;
     R_OW_MINIMAP_Y = 164;
-    if (!CVarGetInteger(CVAR_ENHANCEMENT("RememberMapToggleState"), 0)) {
-        R_MINIMAP_DISABLED = CVarGetInteger(CVAR_ENHANCEMENT("MinimalUI"), 0);
-    }
+    R_MINIMAP_DISABLED = CVarGetInteger("gMinimalUI", 0);
     WREG(32) = 122;
     WREG(33) = 60;
     WREG(35) = 0;
@@ -487,7 +477,7 @@ void Regs_InitDataImpl(void) {
     WREG(94) = 3;
     WREG(95) = 6;
 
-    if (gSaveContext.gameMode == GAMEMODE_NORMAL) {
+    if (gSaveContext.gameMode == 0) {
         R_TEXTBOX_X = 52;
         R_TEXTBOX_Y = 36;
         VREG(2) = 214;

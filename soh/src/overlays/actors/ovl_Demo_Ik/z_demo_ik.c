@@ -1,9 +1,8 @@
 #include "z_demo_ik.h"
 #include "vt.h"
 #include "objects/object_ik/object_ik.h"
-#include "soh/ResourceManagerHelpers.h"
 
-#define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
+#define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
 void DemoIk_Init(Actor* thisx, PlayState* play);
 void DemoIk_Destroy(Actor* thisx, PlayState* play);
@@ -38,7 +37,7 @@ s32 DemoIk_UpdateSkelAnime(DemoIk* this) {
     return SkelAnime_Update(&this->skelAnime);
 }
 
-CsCmdActorCue* DemoIk_GetCue(PlayState* play, s32 index) {
+CsCmdActorAction* DemoIk_GetCue(PlayState* play, s32 index) {
     if (play->csCtx.state != CS_STATE_IDLE) {
         return play->csCtx.npcActions[index];
     }
@@ -46,7 +45,7 @@ CsCmdActorCue* DemoIk_GetCue(PlayState* play, s32 index) {
 }
 
 s32 DemoIk_CheckCue(PlayState* play, u16 action, s32 index) {
-    CsCmdActorCue* cue = DemoIk_GetCue(play, index);
+    CsCmdActorAction* cue = DemoIk_GetCue(play, index);
 
     if ((cue != NULL) && (cue->action == action)) {
         return 1;
@@ -55,12 +54,12 @@ s32 DemoIk_CheckCue(PlayState* play, u16 action, s32 index) {
 }
 
 void DemoIk_SetMove(DemoIk* this, PlayState* play) {
-    this->skelAnime.movementFlags |= 1;
+    this->skelAnime.moveFlags |= 1;
     AnimationContext_SetMoveActor(play, &this->actor, &this->skelAnime, 1.0f);
 }
 
 void DemoIk_EndMove(DemoIk* this) {
-    this->skelAnime.movementFlags &= ~1;
+    this->skelAnime.moveFlags &= ~1;
 }
 
 f32 DemoIk_GetCurFrame(DemoIk* this) {
@@ -94,20 +93,20 @@ void DemoIk_Type1PlaySound(DemoIk* this) {
     switch (this->actor.params) {
         case 0:
             if (Animation_OnFrame(&this->skelAnime, 5.0f)) {
-                Audio_PlaySoundGeneral(NA_SE_EN_IRONNACK_ARMOR_LAND1_DEMO, &this->actor.projectedPos, 4,
-                                       &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                Audio_PlaySoundGeneral(NA_SE_EN_IRONNACK_ARMOR_LAND1_DEMO, &this->actor.projectedPos, 4, &D_801333E0,
+                                       &D_801333E0, &D_801333E8);
             }
             break;
         case 1:
             if (Animation_OnFrame(&this->skelAnime, 10.0f)) {
-                Audio_PlaySoundGeneral(NA_SE_EN_IRONNACK_ARMOR_LAND3_DEMO, &this->actor.projectedPos, 4,
-                                       &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                Audio_PlaySoundGeneral(NA_SE_EN_IRONNACK_ARMOR_LAND3_DEMO, &this->actor.projectedPos, 4, &D_801333E0,
+                                       &D_801333E0, &D_801333E8);
             }
             break;
         case 2:
             if (Animation_OnFrame(&this->skelAnime, 9.0f)) {
-                Audio_PlaySoundGeneral(NA_SE_EN_IRONNACK_ARMOR_LAND2_DEMO, &this->actor.projectedPos, 4,
-                                       &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                Audio_PlaySoundGeneral(NA_SE_EN_IRONNACK_ARMOR_LAND2_DEMO, &this->actor.projectedPos, 4, &D_801333E0,
+                                       &D_801333E0, &D_801333E8);
             }
             break;
     }
@@ -148,7 +147,7 @@ void DemoIk_SpawnDeadDb(DemoIk* this, PlayState* play) {
 }
 
 void DemoIk_MoveToStartPos(DemoIk* this, PlayState* play, s32 index) {
-    CsCmdActorCue* cue = DemoIk_GetCue(play, index);
+    CsCmdActorAction* cue = DemoIk_GetCue(play, index);
 
     if (cue != NULL) {
         this->actor.world.pos.x = cue->startPos.x;
@@ -209,7 +208,7 @@ void func_809839AC(DemoIk* this) {
 }
 
 void func_809839D0(DemoIk* this, PlayState* play) {
-    CsCmdActorCue* cue = DemoIk_GetCue(play, DemoIk_GetIndexFromParams(this->actor.params));
+    CsCmdActorAction* cue = DemoIk_GetCue(play, DemoIk_GetIndexFromParams(this->actor.params));
 
     if (cue != NULL) {
         s32 nextCsAction = cue->action;
@@ -267,11 +266,13 @@ void DemoIk_Type1PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s
     if (limbIndex == 1) {
         switch (this->actor.params) {
             case 0:
-                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx),
+                          G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
                 gSPDisplayList(POLY_XLU_DISP++, gIronKnuckleArmorRivetAndSymbolDL);
                 break;
             case 2:
-                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx),
+                          G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
                 gSPDisplayList(POLY_XLU_DISP++, object_ik_DL_016F88);
                 break;
         }
@@ -326,8 +327,8 @@ void DemoIk_Type2Init(DemoIk* this, PlayState* play) {
 
 void DemoIk_Type2PlaySoundOnFrame(DemoIk* this, f32 frame) {
     if (Animation_OnFrame(&this->skelAnime, frame)) {
-        Audio_PlaySoundGeneral(NA_SE_EN_IRONNACK_ARMOR_OFF_DEMO, &this->actor.projectedPos, 4,
-                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+        Audio_PlaySoundGeneral(NA_SE_EN_IRONNACK_ARMOR_OFF_DEMO, &this->actor.projectedPos, 4, &D_801333E0, &D_801333E0,
+                               &D_801333E8);
     }
 }
 
@@ -361,7 +362,7 @@ void func_8098402C(DemoIk* this) {
 }
 
 void func_80984048(DemoIk* this, PlayState* play) {
-    CsCmdActorCue* cue = DemoIk_GetCue(play, 4);
+    CsCmdActorAction* cue = DemoIk_GetCue(play, 4);
 
     if (cue != NULL) {
         s32 nextCsAction = cue->action;
@@ -404,7 +405,8 @@ void DemoIk_Type2Action2(DemoIk* this, PlayState* play) {
     func_80984048(this, play);
 }
 
-s32 DemoIk_Type2OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot, void* thisx) {
+s32 DemoIk_Type2OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot,
+                                 void* thisx) {
     DemoIk* this = (DemoIk*)thisx;
 
     if ((limbIndex == 1) && (DemoIk_GetCurFrame(this) < 30.0f)) {
@@ -422,19 +424,23 @@ void DemoIk_Type2PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s
     if (limbIndex == 1 && (frame >= 30.0f)) {
         switch (this->actor.params) {
             case 3:
-                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx),
+                          G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
                 gSPDisplayList(POLY_XLU_DISP++, object_ik_DL_017028);
                 break;
             case 4:
-                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx),
+                          G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
                 gSPDisplayList(POLY_XLU_DISP++, object_ik_DL_017170);
                 break;
             case 5:
-                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx),
+                          G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
                 gSPDisplayList(POLY_XLU_DISP++, gIronKnuckleArmorRivetAndSymbolDL);
                 break;
             default:
-                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+                gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx),
+                          G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
                 gSPDisplayList(POLY_XLU_DISP++, object_ik_DL_016CD8);
                 break;
         }

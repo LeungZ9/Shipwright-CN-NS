@@ -4,12 +4,12 @@
 #include <vector>
 #include <memory>
 #include <string>
-#include <ship/resource/Resource.h>
+#include "Resource.h"
 #include "soh/resource/type/scenecommand/SceneCommand.h"
 #include "soh/resource/type/CollisionHeader.h"
 // #include <libultraship/libultra/types.h>
 
-namespace SOH {
+namespace LUS {
 class SetCollisionHeader : public SceneCommand<CollisionHeaderData> {
   public:
     using SceneCommand::SceneCommand;
@@ -21,4 +21,4 @@ class SetCollisionHeader : public SceneCommand<CollisionHeaderData> {
 
     std::shared_ptr<CollisionHeader> collisionHeader;
 };
-}; // namespace SOH
+}; // namespace LUS

@@ -2,9 +2,12 @@
 
 #include <vector>
 #include <string>
-#include <ship/resource/Resource.h>
+#include "Resource.h"
+#include "Vec2f.h"
+#include "Vec3f.h"
+#include "Color3b.h"
 
-namespace SOH {
+namespace LUS {
 
 enum class CutsceneCommands {
     Cmd00 = 0x0000,
@@ -41,12 +44,11 @@ enum class CutsceneCommands {
     Error = 0xFEAF,
 };
 
-class Cutscene : public Ship::Resource<uint32_t> {
+class Cutscene : public Resource<uint32_t> {
   public:
     using Resource::Resource;
 
-    Cutscene() : Resource(std::shared_ptr<Ship::ResourceInitData>()) {
-    }
+    Cutscene() : Resource(std::shared_ptr<ResourceInitData>()) {}
 
     uint32_t* GetPointer();
     size_t GetPointerSize();
@@ -55,7 +57,8 @@ class Cutscene : public Ship::Resource<uint32_t> {
     uint32_t endFrame;
     std::vector<uint32_t> commands;
 };
-} // namespace SOH
+} // namespace LUS
+
 
 /////////////
 

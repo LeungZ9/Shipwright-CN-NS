@@ -7,9 +7,7 @@
 #include "z_en_ma3.h"
 #include "objects/object_ma2/object_ma2.h"
 
-#define FLAGS                                                                                  \
-    (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED | \
-     ACTOR_FLAG_DRAW_CULLING_DISABLED)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_WHILE_CULLED | ACTOR_FLAG_DRAW_WHILE_CULLED)
 
 void EnMa3_Init(Actor* thisx, PlayState* play);
 void EnMa3_Destroy(Actor* thisx, PlayState* play);
@@ -76,31 +74,31 @@ static AnimationFrameCountInfo sAnimationInfo[] = {
 
 u16 func_80AA2AA0(PlayState* play, Actor* thisx) {
     Player* player = GET_PLAYER(play);
-    s16* timerSecondsPtr; // weirdness with this necessary to match
+    s16* timer1ValuePtr; // weirdness with this necessary to match
 
     if (!Flags_GetInfTable(INFTABLE_B8)) {
         return 0x2000;
     }
-    timerSecondsPtr = &gSaveContext.timerSeconds;
+    timer1ValuePtr = &gSaveContext.timer1Value;
     if (gSaveContext.eventInf[0] & 0x400) {
-        gSaveContext.timerSeconds = gSaveContext.timerSeconds;
-        thisx->flags |= ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
-        if (gSaveContext.timerSeconds >= 0xD3) {
+        gSaveContext.timer1Value = gSaveContext.timer1Value;
+        thisx->flags |= ACTOR_FLAG_WILL_TALK;
+        if (gSaveContext.timer1Value >= 0xD3) {
             return 0x208E;
         }
         if ((HIGH_SCORE(HS_HORSE_RACE) == 0) || (HIGH_SCORE(HS_HORSE_RACE) >= 0xB4)) {
             HIGH_SCORE(HS_HORSE_RACE) = 0xB4;
-            gSaveContext.timerSeconds = *timerSecondsPtr;
+            gSaveContext.timer1Value = *timer1ValuePtr;
         }
-        if (!Flags_GetEventChkInf(EVENTCHKINF_WON_COW_IN_MALONS_RACE) && (gSaveContext.timerSeconds < 0x32)) {
+        if (!Flags_GetEventChkInf(EVENTCHKINF_WON_COW_IN_MALONS_RACE) && (gSaveContext.timer1Value < 0x32)) {
             return 0x208F;
-        } else if (gSaveContext.timerSeconds < HIGH_SCORE(HS_HORSE_RACE)) {
+        } else if (gSaveContext.timer1Value < HIGH_SCORE(HS_HORSE_RACE)) {
             return 0x2012;
         } else {
             return 0x2004;
         }
     }
-    if ((!(player->stateFlags1 & PLAYER_STATE1_ON_HORSE)) &&
+    if ((!(player->stateFlags1 & 0x800000)) &&
         (Actor_FindNearby(play, thisx, ACTOR_EN_HORSE, 1, 1200.0f) == NULL)) {
         return 0x2001;
     }
@@ -117,12 +115,12 @@ s16 func_80AA2BD4(PlayState* play, Actor* thisx) {
     switch (Message_GetState(&play->msgCtx)) {
         case TEXT_STATE_EVENT:
             if (Message_ShouldAdvance(play)) {
-                play->nextEntranceIndex = ENTR_LON_LON_RANCH_ENTRANCE;
+                play->nextEntranceIndex = 0x157;
                 gSaveContext.nextCutsceneIndex = 0xFFF0;
-                play->transitionType = TRANS_TYPE_CIRCLE(TCA_STARBURST, TCC_BLACK, TCS_FAST);
-                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->fadeTransition = 0x26;
+                play->sceneLoadFlag = 0x14;
                 gSaveContext.eventInf[0] |= 0x400;
-                gSaveContext.timerState = TIMER_STATE_UP_FREEZE;
+                gSaveContext.timer1State = 0xF;
             }
             break;
         case TEXT_STATE_CHOICE:
@@ -149,14 +147,14 @@ s16 func_80AA2BD4(PlayState* play, Actor* thisx) {
                     Flags_SetEventChkInf(EVENTCHKINF_WON_COW_IN_MALONS_RACE);
                 case 0x2004:
                 case 0x2012:
-                    if (HIGH_SCORE(HS_HORSE_RACE) > gSaveContext.timerSeconds) {
-                        HIGH_SCORE(HS_HORSE_RACE) = gSaveContext.timerSeconds;
+                    if (HIGH_SCORE(HS_HORSE_RACE) > gSaveContext.timer1Value) {
+                        HIGH_SCORE(HS_HORSE_RACE) = gSaveContext.timer1Value;
                     }
                 case 0x208E:
                     gSaveContext.eventInf[0] &= ~0x400;
-                    thisx->flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
+                    thisx->flags &= ~ACTOR_FLAG_WILL_TALK;
                     ret = NPC_TALK_STATE_IDLE;
-                    gSaveContext.timerState = TIMER_STATE_STOP;
+                    gSaveContext.timer1State = 0xA;
                     break;
                 case 0x2002:
                     Flags_SetInfTable(INFTABLE_B9);
@@ -279,7 +277,7 @@ void EnMa3_Destroy(Actor* thisx, PlayState* play) {
 
 void func_80AA3200(EnMa3* this, PlayState* play) {
     if (this->interactInfo.talkState == NPC_TALK_STATE_ACTION) {
-        this->actor.flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
+        this->actor.flags &= ~ACTOR_FLAG_WILL_TALK;
         this->interactInfo.talkState = NPC_TALK_STATE_IDLE;
     }
 }

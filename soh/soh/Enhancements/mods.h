@@ -7,9 +7,9 @@
 extern "C" {
 #endif
 
-void UpdateHyperBossesState();
+void UpdateDirtPathFixState(int32_t sceneNum);
+void UpdateMirrorModeState(int32_t sceneNum);
 void InitMods();
-void SwitchAge();
 
 #ifdef __cplusplus
 }

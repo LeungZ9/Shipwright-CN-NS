@@ -1,7 +1,4 @@
 #include "global.h"
-#include "soh/OTRGlobals.h"
-#include "soh/Enhancements/game-interactor/GameInteractor.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 void GameOver_Init(PlayState* play) {
     play->gameOverCtx.state = GAMEOVER_INACTIVE;
@@ -31,12 +28,12 @@ void GameOver_Update(PlayState* play) {
         case GAMEOVER_DEATH_START:
             Message_CloseTextbox(play);
 
-            gSaveContext.timerState = TIMER_STATE_OFF;
-            gSaveContext.subTimerState = SUBTIMER_STATE_OFF;
+            gSaveContext.timer1State = 0;
+            gSaveContext.timer2State = 0;
             gSaveContext.eventInf[1] &= ~1;
 
             // search inventory for spoiling items and revert if necessary
-            if (GameInteractor_Should(VB_REVERT_SPOILING_ITEMS, true)) {
+            if (!(IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_ADULT_TRADE))) {
                 for (i = 0; i < ARRAY_COUNT(gSpoilingItems); i++) {
                     if (INV_CONTENT(ITEM_POCKET_EGG) == gSpoilingItems[i]) {
                         INV_CONTENT(gSpoilingItemReverts[i]) = gSpoilingItemReverts[i];
@@ -50,7 +47,7 @@ void GameOver_Update(PlayState* play) {
                         }
                     }
                 }
-            }
+			}
 
             // restore "temporary B" to the B Button if not a sword item
             if (gSaveContext.equips.buttonItems[0] != ITEM_SWORD_KOKIRI &&
@@ -77,8 +74,7 @@ void GameOver_Update(PlayState* play) {
             for (int buttonIndex = 0; buttonIndex < ARRAY_COUNT(gSaveContext.buttonStatus); buttonIndex++) {
                 gSaveContext.buttonStatus[buttonIndex] = BTN_ENABLED;
             }
-            gSaveContext.forceRisingButtonAlphas = gSaveContext.unk_13E8 = gSaveContext.unk_13EA =
-                gSaveContext.unk_13EC = 0;
+            gSaveContext.unk_13E7 = gSaveContext.unk_13E8 = gSaveContext.unk_13EA = gSaveContext.unk_13EC = 0;
 
             Environment_InitGameOverLights(play);
             gGameOverTimer = 20;

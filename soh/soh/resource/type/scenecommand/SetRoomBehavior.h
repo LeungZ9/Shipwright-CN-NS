@@ -3,14 +3,14 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
-#include <ship/resource/Resource.h>
+#include "Resource.h"
 #include "SceneCommand.h"
 #include <libultraship/libultra/types.h>
 
-namespace SOH {
+namespace LUS {
 typedef struct {
-    int8_t gameplayFlags;
-    int32_t gameplayFlags2;
+  int8_t gameplayFlags;
+  int32_t gameplayFlags2;
 } RoomBehavior;
 
 class SetRoomBehavior : public SceneCommand<RoomBehavior> {
@@ -22,4 +22,4 @@ class SetRoomBehavior : public SceneCommand<RoomBehavior> {
 
     RoomBehavior roomBehavior;
 };
-}; // namespace SOH
+}; // namespace LUS

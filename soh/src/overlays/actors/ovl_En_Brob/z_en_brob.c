@@ -6,9 +6,8 @@
 
 #include "z_en_brob.h"
 #include "objects/object_brob/object_brob.h"
-#include "soh/ResourceManagerHelpers.h"
 
-#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOSTILE)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_HOSTILE)
 
 void EnBrob_Init(Actor* thisx, PlayState* play);
 void EnBrob_Destroy(Actor* thisx, PlayState* play);
@@ -63,8 +62,8 @@ void EnBrob_Init(Actor* thisx, PlayState* play) {
     EnBrob* this = (EnBrob*)thisx;
     CollisionHeader* colHeader = NULL;
 
-    SkelAnime_InitFlex(play, &this->skelAnime, &object_brob_Skel_0015D8, &object_brob_Anim_001750, this->jointTable,
-                       this->morphTable, 10);
+    SkelAnime_InitFlex(play, &this->skelAnime, &object_brob_Skel_0015D8, &object_brob_Anim_001750,
+                       this->jointTable, this->morphTable, 10);
     DynaPolyActor_Init(&this->dyna, DPM_UNK);
     CollisionHeader_GetVirtual(&object_brob_Col_001A70, &colHeader);
     this->dyna.bgId = DynaPoly_SetBgActor(play, &play->colCtx.dyna, thisx, colHeader);
@@ -93,7 +92,7 @@ void EnBrob_Init(Actor* thisx, PlayState* play) {
     this->colliders[1].dim.height *= thisx->scale.y;
     this->colliders[1].dim.yShift *= thisx->scale.y;
     this->actionFunc = NULL;
-    thisx->flags &= ~ACTOR_FLAG_ATTENTION_ENABLED;
+    thisx->flags &= ~ACTOR_FLAG_TARGETABLE;
     func_809CADDC(this, play);
 }
 
@@ -154,7 +153,7 @@ void func_809CB054(EnBrob* this, PlayState* play) {
         this->timer--;
     }
     if (this->timer == 0) {
-        if (DynaPolyActor_IsPlayerOnTop(&this->dyna) != 0) {
+        if (func_8004356C(&this->dyna) != 0) {
             func_8002F71C(play, &this->dyna.actor, 5.0f, this->dyna.actor.yawTowardsPlayer, 1.0f);
             func_809CAE44(this, play);
         } else if (this->dyna.actor.xzDistToPlayer < 300.0f) {

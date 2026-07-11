@@ -1,14 +1,6 @@
 #include "AudioSample.h"
 
-namespace SOH {
-AudioSample::~AudioSample() {
-    if (sample.book != nullptr && sample.book->book != nullptr) {
-        delete[] sample.book->book;
-    }
-    if (sample.sampleAddr != nullptr) {
-        delete[] sample.sampleAddr;
-    }
-}
+namespace LUS {
 Sample* AudioSample::GetPointer() {
     return &sample;
 }
@@ -16,4 +8,4 @@ Sample* AudioSample::GetPointer() {
 size_t AudioSample::GetPointerSize() {
     return sizeof(Sample);
 }
-} // namespace SOH
+} // namespace LUS

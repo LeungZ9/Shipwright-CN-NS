@@ -12,9 +12,6 @@ static const ALIGN_ASSET(2) char gPhantomGanonTitleCardGERTex[] = dgPhantomGanon
 #define dgPhantomGanonTitleCardFRATex "__OTR__textures/object_fhg/gPhantomGanonTitleCardFRATex"
 static const ALIGN_ASSET(2) char gPhantomGanonTitleCardFRATex[] = dgPhantomGanonTitleCardFRATex;
 
-#define dgPhantomGanonTitleCardJPNTex "__OTR__textures/object_fhg/gPhantomGanonTitleCardJPNTex"
-static const ALIGN_ASSET(2) char gPhantomGanonTitleCardJPNTex[] = dgPhantomGanonTitleCardJPNTex;
-
 
 // #region SOH [Chinese]
 #define dgPhantomGanonTitleCardCHITex "__OTR__textures/object_fhg/gPhantomGanonTitleCardCHITex"

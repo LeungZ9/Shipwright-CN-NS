@@ -1,37 +1,38 @@
 #include "soh/resource/importer/scenecommand/SetSpecialObjectsFactory.h"
 #include "soh/resource/type/scenecommand/SetSpecialObjects.h"
-#include "soh/resource/logging/SceneCommandLoggers.h"
 #include "spdlog/spdlog.h"
-#include <tinyxml2.h>
 
-namespace SOH {
-std::shared_ptr<Ship::IResource>
-SetSpecialObjectsFactory::ReadResource(std::shared_ptr<Ship::ResourceInitData> initData,
-                                       std::shared_ptr<Ship::BinaryReader> reader) {
-    auto setSpecialObjects = std::make_shared<SetSpecialObjects>(initData);
+namespace LUS {
+std::shared_ptr<IResource> SetSpecialObjectsFactory::ReadResource(std::shared_ptr<ResourceInitData> initData,
+                                                                 std::shared_ptr<BinaryReader> reader) {
+    auto resource = std::make_shared<SetSpecialObjects>(initData);
+    std::shared_ptr<ResourceVersionFactory> factory = nullptr;
 
-    ReadCommandId(setSpecialObjects, reader);
-
-    setSpecialObjects->specialObjects.elfMessage = reader->ReadInt8();
-    setSpecialObjects->specialObjects.globalObject = reader->ReadInt16();
-
-    if (CVarGetInteger(CVAR_DEVELOPER_TOOLS("ResourceLogging"), 0)) {
-        LogSpecialObjectsAsXML(setSpecialObjects);
+    switch (resource->GetInitData()->ResourceVersion) {
+    case 0:
+	    factory = std::make_shared<SetSpecialObjectsFactoryV0>();
+	    break;
     }
 
-    return setSpecialObjects;
+    if (factory == nullptr){
+        SPDLOG_ERROR("Failed to load SetSpecialObjects with version {}", resource->GetInitData()->ResourceVersion);
+	return nullptr;
+    }
+
+    factory->ParseFileBinary(reader, resource);
+
+    return resource;
 }
 
-std::shared_ptr<Ship::IResource>
-SetSpecialObjectsFactoryXML::ReadResource(std::shared_ptr<Ship::ResourceInitData> initData,
-                                          tinyxml2::XMLElement* reader) {
-    auto setSpecialObjects = std::make_shared<SetSpecialObjects>(initData);
+void LUS::SetSpecialObjectsFactoryV0::ParseFileBinary(std::shared_ptr<BinaryReader> reader,
+                                        std::shared_ptr<IResource> resource) {
+    std::shared_ptr<SetSpecialObjects> setSpecialObjects = std::static_pointer_cast<SetSpecialObjects>(resource);
+    ResourceVersionFactory::ParseFileBinary(reader, setSpecialObjects);
 
-    setSpecialObjects->cmdId = SceneCommandID::SetSpecialObjects;
-
-    setSpecialObjects->specialObjects.elfMessage = reader->IntAttribute("ElfMessage");
-    setSpecialObjects->specialObjects.globalObject = reader->IntAttribute("GlobalObject");
-
-    return setSpecialObjects;
+    ReadCommandId(setSpecialObjects, reader);
+    
+    setSpecialObjects->specialObjects.elfMessage = reader->ReadInt8();
+    setSpecialObjects->specialObjects.globalObject = reader->ReadInt16();
 }
-} // namespace SOH
+
+} // namespace LUS

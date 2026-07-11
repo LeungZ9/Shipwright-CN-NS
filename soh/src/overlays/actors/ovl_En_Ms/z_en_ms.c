@@ -6,10 +6,8 @@
 
 #include "z_en_ms.h"
 #include "objects/object_ms/object_ms.h"
-#include "soh/ResourceManagerHelpers.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
-#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY)
 
 void EnMs_Init(Actor* thisx, PlayState* play);
 void EnMs_Destroy(Actor* thisx, PlayState* play);
@@ -129,16 +127,20 @@ void EnMs_Talk(EnMs* this, PlayState* play) {
     } else if (Message_ShouldAdvance(play)) {
         switch (play->msgCtx.choiceIndex) {
             case 0: // yes
-                if (!GameInteractor_Should(VB_BE_ELIGIBLE_FOR_MAGIC_BEANS_PURCHASE,
-                                           (gSaveContext.rupees >= sPrices[BEANS_BOUGHT]), this)) {
+                if (gSaveContext.rupees <
+                    ((IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_MAGIC_BEANS))
+                         ? 60
+                         : sPrices[BEANS_BOUGHT])) {
                     Message_ContinueTextbox(play, 0x4069); // not enough rupees text
                     return;
                 }
-
-                if (GameInteractor_Should(VB_GIVE_ITEM_FROM_MAGIC_BEAN_SALESMAN, true, this)) {
-                    Actor_OfferGetItem(&this->actor, play, GI_BEAN, 90.0f, 10.0f);
-                    this->actionFunc = EnMs_Sell;
+                if (IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_MAGIC_BEANS)) {
+                    GiveItemEntryFromActor(&this->actor, play, 
+                        Randomizer_GetItemFromKnownCheck(RC_ZR_MAGIC_BEAN_SALESMAN, GI_BEAN), 90.0f, 10.0f);
+                } else {
+                    func_8002F434(&this->actor, play, GI_BEAN, 90.0f, 10.0f);
                 }
+                this->actionFunc = EnMs_Sell;
                 return;
             case 1: // no
                 Message_ContinueTextbox(play, 0x4068);
@@ -150,13 +152,23 @@ void EnMs_Talk(EnMs* this, PlayState* play) {
 
 void EnMs_Sell(EnMs* this, PlayState* play) {
     if (Actor_HasParent(&this->actor, play)) {
-        if (GameInteractor_Should(VB_MAGIC_BEAN_SALESMAN_TAKE_MONEY, true, this)) {
-            Rupees_ChangeBy(-sPrices[BEANS_BOUGHT]);
-        }
+        Rupees_ChangeBy((IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_MAGIC_BEANS)) ? -60 : -sPrices[BEANS_BOUGHT]);
         this->actor.parent = NULL;
-        this->actionFunc = EnMs_TalkAfterPurchase;
+        this->actionFunc =
+            (IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_MAGIC_BEANS)) ? EnMs_Wait : EnMs_TalkAfterPurchase;
     } else {
-        Actor_OfferGetItem(&this->actor, play, GI_BEAN, 90.0f, 10.0f);
+        if (IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_MAGIC_BEANS)) {
+            GetItemEntry itemEntry = Randomizer_GetItemFromKnownCheck(RC_ZR_MAGIC_BEAN_SALESMAN, GI_BEAN);
+            gSaveContext.pendingSale = itemEntry.itemId;
+            gSaveContext.pendingSaleMod = itemEntry.modIndex;
+            GiveItemEntryFromActor(&this->actor, play, itemEntry, 90.0f, 10.0f);
+            BEANS_BOUGHT = 10;
+        } else {
+            GetItemEntry entry = ItemTable_Retrieve(GI_BEAN);
+            gSaveContext.pendingSaleMod = entry.modIndex;
+            gSaveContext.pendingSale = entry.itemId;
+            func_8002F434(&this->actor, play, GI_BEAN, 90.0f, 10.0f);
+        }
     }
 }
 
@@ -179,9 +191,8 @@ void EnMs_Update(Actor* thisx, PlayState* play) {
     SkelAnime_Update(&this->skelAnime);
     this->actionFunc(this, play);
 
-    if (gSaveContext.entranceIndex == ENTR_LON_LON_RANCH_ENTRANCE &&
-        gSaveContext.sceneSetupIndex == 8) { // ride carpet if in credits
-        Actor_MoveXZGravity(&this->actor);
+    if (gSaveContext.entranceIndex == 0x157 && gSaveContext.sceneSetupIndex == 8) { // ride carpet if in credits
+        Actor_MoveForward(&this->actor);
         osSyncPrintf("OOOHHHHHH %f\n", this->actor.velocity.y);
         Actor_UpdateBgCheckInfo(play, &this->actor, 0.0f, 0.0f, 0.0f, 4);
     }

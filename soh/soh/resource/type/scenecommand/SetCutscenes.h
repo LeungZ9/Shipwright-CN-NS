@@ -4,12 +4,12 @@
 #include <vector>
 #include <memory>
 #include <string>
-#include <ship/resource/Resource.h>
+#include "Resource.h"
 #include "soh/resource/type/scenecommand/SceneCommand.h"
 #include "soh/resource/type/Cutscene.h"
 // #include <libultraship/libultra.h>
 
-namespace SOH {
+namespace LUS {
 class SetCutscenes : public SceneCommand<uint32_t> {
   public:
     using SceneCommand::SceneCommand;
@@ -20,4 +20,4 @@ class SetCutscenes : public SceneCommand<uint32_t> {
     std::string fileName;
     std::shared_ptr<Cutscene> cutscene;
 };
-}; // namespace SOH
+}; // namespace LUS

@@ -12,9 +12,6 @@ static const ALIGN_ASSET(2) char gGohmaTitleCardGERTex[] = dgGohmaTitleCardGERTe
 #define dgGohmaTitleCardFRATex "__OTR__textures/object_goma/gGohmaTitleCardFRATex"
 static const ALIGN_ASSET(2) char gGohmaTitleCardFRATex[] = dgGohmaTitleCardFRATex;
 
-#define dgGohmaTitleCardJPNTex "__OTR__textures/object_goma/gGohmaTitleCardJPNTex"
-static const ALIGN_ASSET(2) char gGohmaTitleCardJPNTex[] = dgGohmaTitleCardJPNTex;
-
 
 // #region SOH [Chinese]
 #define dgGohmaTitleCardCHITex "__OTR__textures/object_goma/gGohmaTitleCardCHITex"

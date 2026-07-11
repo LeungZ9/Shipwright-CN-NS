@@ -21,6 +21,4 @@ typedef struct EnCow {
     /* 0x027C */ EnCowActionFunc actionFunc;
 } EnCow; // size = 0x0280
 
-void func_809DEE9C(EnCow* enCow);
-
 #endif

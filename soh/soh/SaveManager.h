@@ -1,13 +1,12 @@
 #pragma once
 
 #include <libultraship/libultra/gbi.h>
-#include "z64save.h"
 
 #define SECTION_PARENT_NONE -1
 typedef struct {
     u8 valid;
     u16 deaths;
-    u8 playerName[8];
+    char playerName[8];
     u16 healthCapacity;
     u32 questItems;
     s8 defense;
@@ -29,20 +28,8 @@ typedef struct {
     s16 rupees;
     s16 gsTokens;
     u8 isDoubleDefenseAcquired;
-    s32 filenameLanguage;
-    bool gregFound;
-    bool hasWallet;
-    u8 triforcePieces;
-    u8 maxTriforcePieces;
-    bool hasFishingRod;
-    bool fishingPoleShuffled;
+    u8 gregFound;
 } SaveFileMetaInfo;
-
-typedef enum {
-    /* 0 */ NAME_LANGUAGE_PAL,
-    /* 1 */ NAME_LANGUAGE_NTSC_JPN,
-    /* 2 */ NAME_LANGUAGE_NTSC_ENG,
-} FilenameLanguage;
 
 #ifdef __cplusplus
 
@@ -52,10 +39,9 @@ typedef enum {
 #include <functional>
 #include <vector>
 #include <filesystem>
+#include "thread-pool/BS_thread_pool.hpp"
 
-#define BS_THREAD_POOL_ENABLE_PRIORITY
-#define BS_THREAD_POOL_ENABLE_PAUSE
-#include <BS_thread_pool.hpp>
+#include "z64save.h"
 
 #include <nlohmann/json.hpp>
 
@@ -165,13 +151,13 @@ class SaveManager {
     void SaveFileThreaded(int fileNum, SaveContext* saveContext, int sectionID);
 
     void InitMeta(int slotNum);
-    void StartupCheckAndInitMeta(int slotNum);
     static void InitFileImpl(bool isDebug);
     static void InitFileNormal();
     static void InitFileDebug();
     static void InitFileMaxed();
 
-    static void LoadRandomizer();
+    static void LoadRandomizerVersion1();
+    static void LoadRandomizerVersion2();
     static void SaveRandomizer(SaveContext* saveContext, int sectionID, bool fullSave);
 
     static void LoadBaseVersion1();
@@ -195,7 +181,6 @@ class SaveManager {
     nlohmann::json* currentJsonContext = nullptr;
     nlohmann::json::iterator currentJsonArrayContext;
     std::shared_ptr<BS::thread_pool> smThreadPool;
-    std::mutex saveMtx;
 };
 
 #else

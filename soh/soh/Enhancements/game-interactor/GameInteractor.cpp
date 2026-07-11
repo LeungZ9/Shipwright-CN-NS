@@ -1,4 +1,4 @@
-/*
+/* 
 GameInteractor is meant to be used for interacting with the game (yup...).
 It exposes functions that directly modify, add or remove game related elements.
 
@@ -19,18 +19,20 @@ extern "C" {
 extern PlayState* gPlayState;
 }
 
+#include "overlays/actors/ovl_En_Niw/z_en_niw.h"
+
 // MARK: - Effects
 
-GameInteractionEffectQueryResult GameInteractor::CanApplyEffect(GameInteractionEffectBase& effect) {
-    return effect.CanBeApplied();
+GameInteractionEffectQueryResult GameInteractor::CanApplyEffect(GameInteractionEffectBase* effect) {
+    return effect->CanBeApplied();
 }
 
-GameInteractionEffectQueryResult GameInteractor::ApplyEffect(GameInteractionEffectBase& effect) {
-    return effect.Apply();
+GameInteractionEffectQueryResult GameInteractor::ApplyEffect(GameInteractionEffectBase* effect) {
+    return effect->Apply();
 }
 
-GameInteractionEffectQueryResult GameInteractor::RemoveEffect(RemovableGameInteractionEffect& effect) {
-    return effect.Remove();
+GameInteractionEffectQueryResult GameInteractor::RemoveEffect(GameInteractionEffectBase* effect) {
+    return effect->Remove();
 }
 
 // MARK: - Helpers
@@ -52,10 +54,7 @@ bool GameInteractor::IsSaveLoaded(bool allowDbgSave) {
 
 bool GameInteractor::IsGameplayPaused() {
     Player* player = GET_PLAYER(gPlayState);
-    return (Player_InBlockingCsMode(gPlayState, player) || gPlayState->pauseCtx.state != 0 ||
-            gPlayState->msgCtx.msgMode != 0)
-               ? true
-               : false;
+    return (Player_InBlockingCsMode(gPlayState, player) || gPlayState->pauseCtx.state != 0 || gPlayState->msgCtx.msgMode != 0) ? true : false;
 }
 
 bool GameInteractor::CanSpawnActor() {

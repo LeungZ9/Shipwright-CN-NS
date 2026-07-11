@@ -2,19 +2,22 @@
 
 #include <vector>
 #include <string>
-#include <ship/resource/Resource.h>
+#include "Resource.h"
+#include "Vec2f.h"
+#include "Vec3f.h"
+#include "Color3b.h"
 
-namespace SOH {
-class PlayerAnimation : public Ship::Resource<int16_t> {
+namespace LUS {
+
+class PlayerAnimation : public Resource<int16_t> {
   public:
     using Resource::Resource;
 
-    PlayerAnimation() : Resource(std::shared_ptr<Ship::ResourceInitData>()) {
-    }
+    PlayerAnimation() : Resource(std::shared_ptr<ResourceInitData>()) {}
 
     int16_t* GetPointer();
     size_t GetPointerSize();
 
     std::vector<int16_t> limbRotData;
 };
-} // namespace SOH
+} // namespace LUS

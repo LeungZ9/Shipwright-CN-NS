@@ -32,6 +32,4 @@ typedef struct EnPoSisters {
     u32 epoch;
 } EnPoSisters; // size = 0x0338
 
-void func_80ADB338(EnPoSisters* enPoSisters, PlayState* play);
-
 #endif

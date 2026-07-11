@@ -3,10 +3,10 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
-#include <ship/resource/Resource.h>
+#include "Resource.h"
 #include <libultraship/libultra/types.h>
 
-namespace SOH {
+namespace LUS {
 
 enum class SceneCommandID : uint8_t {
     SetStartPositionList = 0x00,
@@ -47,11 +47,10 @@ enum class SceneCommandID : uint8_t {
     Error = 0xFF
 };
 
-class ISceneCommand : public Ship::IResource {
-  public:
+class ISceneCommand : public IResource {
+public:
     using IResource::IResource;
-    ISceneCommand() : IResource(std::shared_ptr<Ship::ResourceInitData>()) {
-    }
+    ISceneCommand() : IResource(std::shared_ptr<ResourceInitData>()) {}
     SceneCommandID cmdId;
 };
 
@@ -64,4 +63,4 @@ template <class T> class SceneCommand : public ISceneCommand {
     }
 };
 
-}; // namespace SOH
+}; // namespace LUS

@@ -30,6 +30,4 @@ typedef struct EnSa {
     /* 0x0286 */ Vec3s morphTable[17];
 } EnSa; // size = 0x02EC
 
-void func_80AF6B20(EnSa* enSa, PlayState* play);
-
 #endif

@@ -7,7 +7,7 @@
 #include "z_item_etcetera.h"
 #include <assert.h>
 
-#define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
+#define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
 void ItemEtcetera_Init(Actor* thisx, PlayState* play);
 void ItemEtcetera_Destroy(Actor* thisx, PlayState* play);
@@ -50,8 +50,8 @@ static s16 sDrawItemIndexes[] = {
 };
 
 static s16 sGetItemIds[] = {
-    GI_BOTTLE,     GI_LETTER_RUTO, GI_SHIELD_HYLIAN, GI_QUIVER_40, GI_SCALE_SILVER, GI_SCALE_GOLDEN, GI_KEY_SMALL,
-    GI_ARROW_FIRE, GI_NONE,        GI_NONE,          GI_NONE,      GI_NONE,         GI_NONE,         GI_NONE,
+    GI_BOTTLE,     GI_LETTER_RUTO, GI_SHIELD_HYLIAN, GI_QUIVER_40, GI_SCALE_SILVER, GI_SCALE_GOLD, GI_KEY_SMALL,
+    GI_ARROW_FIRE, GI_NONE,        GI_NONE,          GI_NONE,      GI_NONE,         GI_NONE,       GI_NONE,
 };
 
 void ItemEtcetera_SetupAction(ItemEtcetera* this, ItemEtceteraActionFunc actionFunc) {
@@ -83,7 +83,8 @@ void ItemEtcetera_Init(Actor* thisx, PlayState* play) {
         case ITEM_ETC_LETTER:
             Actor_SetScale(&this->actor, 0.5f);
             this->futureActionFunc = func_80B858B4;
-            if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_RUTOS_LETTER)) {
+            if ((Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_RUTOS_LETTER) && !IS_RANDO) ||
+                (IS_RANDO && Flags_GetTreasure(play, 0x1E))) {
                 Actor_Kill(&this->actor);
             }
             break;
@@ -120,13 +121,24 @@ void func_80B857D0(ItemEtcetera* this, PlayState* play) {
 
 void func_80B85824(ItemEtcetera* this, PlayState* play) {
     if (Actor_HasParent(&this->actor, play)) {
+        if ((this->actor.params & 0xFF) == 7) {
+            if (IS_RANDO) {
+                Flags_SetTreasure(play, 0x1F);
+            }
+        }
+
         if ((this->actor.params & 0xFF) == 1) {
             Flags_SetEventChkInf(EVENTCHKINF_OBTAINED_RUTOS_LETTER);
             Flags_SetSwitch(play, 0xB);
         }
         Actor_Kill(&this->actor);
     } else {
-        Actor_OfferGetItem(&this->actor, play, this->getItemId, 30.0f, 50.0f);
+        if (!IS_RANDO) {
+            func_8002F434(&this->actor, play, this->getItemId, 30.0f, 50.0f);
+        } else {
+            GetItemEntry getItemEntry = Randomizer_GetItemFromKnownCheck(RC_LH_SUN, GI_ARROW_FIRE);
+            GiveItemEntryFromActor(&this->actor, play, getItemEntry, 30.0f, 50.0f);
+        }
     }
 }
 
@@ -135,11 +147,21 @@ void func_80B858B4(ItemEtcetera* this, PlayState* play) {
         if ((this->actor.params & 0xFF) == 1) {
             Flags_SetEventChkInf(EVENTCHKINF_OBTAINED_RUTOS_LETTER);
             Flags_SetSwitch(play, 0xB);
-        }
 
+            if (IS_RANDO) {
+                Flags_SetTreasure(play, 0x1E);
+            }
+        }
         Actor_Kill(&this->actor);
     } else {
-        Actor_OfferGetItem(&this->actor, play, this->getItemId, 30.0f, 50.0f);
+        if (0) {} // Necessary to match
+
+        if (!IS_RANDO) {
+            func_8002F434(&this->actor, play, this->getItemId, 30.0f, 50.0f);
+        } else {
+            GetItemEntry getItemEntry = Randomizer_GetItemFromKnownCheck(RC_LH_UNDERWATER_ITEM, GI_LETTER_RUTO);
+            GiveItemEntryFromActor(&this->actor, play, getItemEntry, 30.0f, 50.0f);
+        }
 
         if ((play->gameplayFrames & 0xD) == 0) {
             EffectSsBubble_Spawn(play, &this->actor.world.pos, 0.0f, 0.0f, 10.0f, 0.13f);
@@ -166,7 +188,7 @@ void ItemEtcetera_SpawnSparkles(ItemEtcetera* this, PlayState* play) {
 
 void ItemEtcetera_MoveFireArrowDown(ItemEtcetera* this, PlayState* play) {
     Actor_UpdateBgCheckInfo(play, &this->actor, 10.0f, 10.0f, 0.0f, 5);
-    Actor_MoveXZGravity(&this->actor);
+    Actor_MoveForward(&this->actor);
     if (!(this->actor.bgCheckFlags & 1)) {
         ItemEtcetera_SpawnSparkles(this, play);
     }
@@ -206,12 +228,41 @@ void ItemEtcetera_DrawThroughLens(Actor* thisx, PlayState* play) {
     if (play->actorCtx.lensActive) {
         func_8002EBCC(&this->actor, play, 0);
         func_8002ED80(&this->actor, play, 0);
+
+        if(IS_RANDO && play->sceneNum == 16) {
+            GetItemEntry randoGetItem = GetChestGameRandoGetItem(this->actor.room, this->giDrawId, play);
+            EnItem00_CustomItemsParticles(&this->actor, play, randoGetItem);
+            if (randoGetItem.itemId != ITEM_NONE) {
+                GetItemEntry_Draw(play, randoGetItem);
+                return;
+            }
+        }
+        
         GetItem_Draw(play, this->giDrawId);
     }
 }
 
 void ItemEtcetera_Draw(Actor* thisx, PlayState* play) {
     ItemEtcetera* this = (ItemEtcetera*)thisx;
+    s32 type = this->actor.params & 0xFF;
+
+    if (IS_RANDO) {
+        GetItemEntry randoGetItem = (GetItemEntry)GET_ITEM_NONE;
+        if (type == ITEM_ETC_ARROW_FIRE) {
+            randoGetItem = Randomizer_GetItemFromKnownCheck(RC_LH_SUN, GI_ARROW_FIRE);
+        } else if (type == ITEM_ETC_LETTER) {
+            randoGetItem = Randomizer_GetItemFromKnownCheck(RC_LH_UNDERWATER_ITEM, GI_LETTER_RUTO);
+        }
+
+        EnItem00_CustomItemsParticles(&this->actor, play, randoGetItem);
+
+        if (randoGetItem.itemId != ITEM_NONE) {
+            func_8002EBCC(&this->actor, play, 0);
+            func_8002ED80(&this->actor, play, 0);
+            GetItemEntry_Draw(play, randoGetItem);
+            return;
+        }
+    }
 
     func_8002EBCC(&this->actor, play, 0);
     func_8002ED80(&this->actor, play, 0);

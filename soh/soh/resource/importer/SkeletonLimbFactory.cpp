@@ -1,31 +1,68 @@
 #include "soh/resource/importer/SkeletonLimbFactory.h"
 #include "soh/resource/type/SkeletonLimb.h"
 #include "spdlog/spdlog.h"
-#include <tinyxml2.h>
 #include "libultraship/libultraship.h"
 
-namespace SOH {
-std::shared_ptr<Ship::IResource>
-ResourceFactoryBinarySkeletonLimbV0::ReadResource(std::shared_ptr<Ship::File> file,
-                                                  std::shared_ptr<Ship::ResourceInitData> initData) {
-    if (!FileHasValidFormatAndReader(file, initData)) {
+namespace LUS {
+std::shared_ptr<IResource>
+SkeletonLimbFactory::ReadResource(std::shared_ptr<ResourceInitData> initData, std::shared_ptr<BinaryReader> reader) {
+    auto resource = std::make_shared<SkeletonLimb>(initData);
+    std::shared_ptr<ResourceVersionFactory> factory = nullptr;
+
+    switch (resource->GetInitData()->ResourceVersion) {
+    case 0:
+	    factory = std::make_shared<SkeletonLimbFactoryV0>();
+	    break;
+    }
+
+    if (factory == nullptr) {
+        SPDLOG_ERROR("Failed to load Skeleton Limb with version {}", resource->GetInitData()->ResourceVersion);
+	return nullptr;
+    }
+
+    factory->ParseFileBinary(reader, resource);
+
+    return resource;
+}
+
+std::shared_ptr<IResource>
+SkeletonLimbFactory::ReadResourceXML(std::shared_ptr<ResourceInitData> initData, tinyxml2::XMLElement *reader) {
+    auto resource = std::make_shared<SkeletonLimb>(initData);
+    std::shared_ptr<ResourceVersionFactory> factory = nullptr;
+
+    switch (resource->GetInitData()->ResourceVersion) {
+        case 0:
+            factory = std::make_shared<SkeletonLimbFactoryV0>();
+            break;
+    }
+
+    if (factory == nullptr) {
+        SPDLOG_ERROR("Failed to load Skeleton Limb with version {}", resource->GetInitData()->ResourceVersion);
         return nullptr;
     }
 
-    auto skeletonLimb = std::make_shared<SkeletonLimb>(initData);
-    auto reader = std::get<std::shared_ptr<Ship::BinaryReader>>(file->Reader);
+    factory->ParseFileXML(reader, resource);
+
+    return resource;
+}
+
+void LUS::SkeletonLimbFactoryV0::ParseFileBinary(std::shared_ptr<BinaryReader> reader,
+                                                  std::shared_ptr<IResource> resource)
+{
+    std::shared_ptr<SkeletonLimb> skeletonLimb = std::static_pointer_cast<SkeletonLimb>(resource);
+    ResourceVersionFactory::ParseFileBinary(reader, skeletonLimb);
 
     skeletonLimb->limbType = (LimbType)reader->ReadInt8();
     skeletonLimb->skinSegmentType = (ZLimbSkinType)reader->ReadInt8();
     skeletonLimb->skinDList = reader->ReadString();
 
     skeletonLimb->skinVtxCnt = reader->ReadUInt16();
-
+    
     skeletonLimb->skinLimbModifCount = reader->ReadUInt32();
     skeletonLimb->skinLimbModifArray.reserve(skeletonLimb->skinLimbModifCount);
     skeletonLimb->skinLimbModifVertexArrays.reserve(skeletonLimb->skinLimbModifCount);
     skeletonLimb->skinLimbModifTransformationArrays.reserve(skeletonLimb->skinLimbModifCount);
-    for (size_t i = 0; i < skeletonLimb->skinLimbModifCount; i++) {
+    for (size_t i = 0; i <  skeletonLimb->skinLimbModifCount; i++) {
         SkinLimbModif skinLimbModif;
         skinLimbModif.unk_4 = reader->ReadUInt16();
         skeletonLimb->skinLimbModifArray.push_back(skinLimbModif);
@@ -87,7 +124,7 @@ ResourceFactoryBinarySkeletonLimbV0::ReadResource(std::shared_ptr<Ship::File> fi
     skeletonLimb->childIndex = reader->ReadUByte();
     skeletonLimb->siblingIndex = reader->ReadUByte();
 
-    if (skeletonLimb->limbType == LimbType::LOD) {
+    if (skeletonLimb->limbType == LUS::LimbType::LOD) {
         skeletonLimb->limbData.lodLimb.jointPos.x = skeletonLimb->transX;
         skeletonLimb->limbData.lodLimb.jointPos.y = skeletonLimb->transY;
         skeletonLimb->limbData.lodLimb.jointPos.z = skeletonLimb->transZ;
@@ -107,7 +144,7 @@ ResourceFactoryBinarySkeletonLimbV0::ReadResource(std::shared_ptr<Ship::File> fi
         } else {
             skeletonLimb->limbData.lodLimb.dLists[1] = nullptr;
         }
-    } else if (skeletonLimb->limbType == LimbType::Standard) {
+    } else if (skeletonLimb->limbType == LUS::LimbType::Standard) {
         skeletonLimb->limbData.standardLimb.jointPos.x = skeletonLimb->transX;
         skeletonLimb->limbData.standardLimb.jointPos.y = skeletonLimb->transY;
         skeletonLimb->limbData.standardLimb.jointPos.z = skeletonLimb->transZ;
@@ -119,7 +156,7 @@ ResourceFactoryBinarySkeletonLimbV0::ReadResource(std::shared_ptr<Ship::File> fi
             skeletonLimb->dListPtr = "__OTR__" + skeletonLimb->dListPtr;
             skeletonLimb->limbData.standardLimb.dList = (Gfx*)skeletonLimb->dListPtr.c_str();
         }
-    } else if (skeletonLimb->limbType == LimbType::Curve) {
+    } else if (skeletonLimb->limbType == LUS::LimbType::Curve) {
         skeletonLimb->limbData.skelCurveLimb.firstChildIdx = skeletonLimb->childIndex;
         skeletonLimb->limbData.skelCurveLimb.nextLimbIdx = skeletonLimb->siblingIndex;
         skeletonLimb->limbData.skelCurveLimb.dList[0] = nullptr;
@@ -134,31 +171,31 @@ ResourceFactoryBinarySkeletonLimbV0::ReadResource(std::shared_ptr<Ship::File> fi
             skeletonLimb->dList2Ptr = "__OTR__" + skeletonLimb->dList2Ptr;
             skeletonLimb->limbData.skelCurveLimb.dList[1] = (Gfx*)skeletonLimb->dList2Ptr.c_str();
         }
-    } else if (skeletonLimb->limbType == LimbType::Skin) {
+    } else if (skeletonLimb->limbType == LUS::LimbType::Skin) {
         skeletonLimb->limbData.skinLimb.jointPos.x = skeletonLimb->transX;
         skeletonLimb->limbData.skinLimb.jointPos.y = skeletonLimb->transY;
         skeletonLimb->limbData.skinLimb.jointPos.z = skeletonLimb->transZ;
         skeletonLimb->limbData.skinLimb.child = skeletonLimb->childIndex;
         skeletonLimb->limbData.skinLimb.sibling = skeletonLimb->siblingIndex;
 
-        if (skeletonLimb->skinSegmentType == ZLimbSkinType::SkinType_DList) {
+        if (skeletonLimb->skinSegmentType == LUS::ZLimbSkinType::SkinType_DList) {
             skeletonLimb->limbData.skinLimb.segmentType = static_cast<int32_t>(skeletonLimb->skinSegmentType);
-        } else if (skeletonLimb->skinSegmentType == ZLimbSkinType::SkinType_4) {
+        } else if (skeletonLimb->skinSegmentType == LUS::ZLimbSkinType::SkinType_4) {
             skeletonLimb->limbData.skinLimb.segmentType = 4;
-        } else if (skeletonLimb->skinSegmentType == ZLimbSkinType::SkinType_5) {
+        } else if (skeletonLimb->skinSegmentType == LUS::ZLimbSkinType::SkinType_5) {
             skeletonLimb->limbData.skinLimb.segmentType = 5;
         } else {
             skeletonLimb->limbData.skinLimb.segmentType = 0;
         }
 
-        if (skeletonLimb->skinSegmentType == ZLimbSkinType::SkinType_DList) {
+        if (skeletonLimb->skinSegmentType == LUS::ZLimbSkinType::SkinType_DList) {
             if (skeletonLimb->skinDList != "") {
                 skeletonLimb->skinDList = "__OTR__" + skeletonLimb->skinDList;
                 skeletonLimb->limbData.skinLimb.segment = (Gfx*)skeletonLimb->skinDList.c_str();
             } else {
                 skeletonLimb->limbData.skinLimb.segment = nullptr;
             }
-        } else if (skeletonLimb->skinSegmentType == ZLimbSkinType::SkinType_4) {
+        } else if (skeletonLimb->skinSegmentType == LUS::ZLimbSkinType::SkinType_4) {
             skeletonLimb->skinAnimLimbData.totalVtxCount = skeletonLimb->skinVtxCnt;
             skeletonLimb->skinAnimLimbData.limbModifCount = skeletonLimb->skinLimbModifCount;
             skeletonLimb->skinAnimLimbData.limbModifications = skeletonLimb->skinLimbModifArray.data();
@@ -171,35 +208,22 @@ ResourceFactoryBinarySkeletonLimbV0::ReadResource(std::shared_ptr<Ship::File> fi
             }
 
             for (size_t i = 0; i < skeletonLimb->skinLimbModifArray.size(); i++) {
-                skeletonLimb->skinAnimLimbData.limbModifications[i].vtxCount =
-                    skeletonLimb->skinLimbModifVertexArrays[i].size();
-                skeletonLimb->skinAnimLimbData.limbModifications[i].skinVertices =
-                    skeletonLimb->skinLimbModifVertexArrays[i].data();
-
-                skeletonLimb->skinAnimLimbData.limbModifications[i].transformCount =
-                    skeletonLimb->skinLimbModifTransformationArrays[i].size();
-                skeletonLimb->skinAnimLimbData.limbModifications[i].limbTransformations =
-                    skeletonLimb->skinLimbModifTransformationArrays[i].data();
+                skeletonLimb->skinAnimLimbData.limbModifications[i].vtxCount = skeletonLimb->skinLimbModifVertexArrays[i].size();
+                skeletonLimb->skinAnimLimbData.limbModifications[i].skinVertices = skeletonLimb->skinLimbModifVertexArrays[i].data();
+                
+                skeletonLimb->skinAnimLimbData.limbModifications[i].transformCount = skeletonLimb->skinLimbModifTransformationArrays[i].size();
+                skeletonLimb->skinAnimLimbData.limbModifications[i].limbTransformations = skeletonLimb->skinLimbModifTransformationArrays[i].data();
 
                 skeletonLimb->skinAnimLimbData.limbModifications[i].unk_4 = skeletonLimb->skinLimbModifArray[i].unk_4;
             }
 
-            skeletonLimb->limbData.skinLimb.segment = &skeletonLimb->skinAnimLimbData;
+           skeletonLimb->limbData.skinLimb.segment = &skeletonLimb->skinAnimLimbData;
         }
     }
-
-    return skeletonLimb;
 }
-
-std::shared_ptr<Ship::IResource>
-ResourceFactoryXMLSkeletonLimbV0::ReadResource(std::shared_ptr<Ship::File> file,
-                                               std::shared_ptr<Ship::ResourceInitData> initData) {
-    if (!FileHasValidFormatAndReader(file, initData)) {
-        return nullptr;
-    }
-
-    auto skelLimb = std::make_shared<SkeletonLimb>(initData);
-    auto reader = std::get<std::shared_ptr<tinyxml2::XMLDocument>>(file->Reader)->FirstChildElement();
+void SkeletonLimbFactoryV0::ParseFileXML(tinyxml2::XMLElement* reader, std::shared_ptr<IResource> resource)
+{
+    std::shared_ptr<SkeletonLimb> skelLimb = std::static_pointer_cast<SkeletonLimb>(resource);
 
     std::string limbType = reader->Attribute("Type");
 
@@ -251,7 +275,6 @@ ResourceFactoryXMLSkeletonLimbV0::ReadResource(std::shared_ptr<Ship::File> file,
     limbData.lodLimb.sibling = skelLimb->siblingIndex;
 
     // skelLimb->dList2Ptr = reader->Attribute("DisplayList2");
-
-    return skelLimb;
 }
-} // namespace SOH
+
+} // namespace LUS

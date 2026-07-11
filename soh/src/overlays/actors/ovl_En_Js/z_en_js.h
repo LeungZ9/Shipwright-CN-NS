@@ -22,6 +22,4 @@ typedef struct EnJs {
     /* 0x028C */ EnJsActionFunc actionFunc;
 } EnJs; // size = 0x0290
 
-void func_80A890C0(EnJs* actor, PlayState* play);
-
 #endif

@@ -6,9 +6,8 @@
 
 #include "z_bg_haka_huta.h"
 #include "objects/object_hakach_objects/object_hakach_objects.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
-#define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
+#define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
 void BgHakaHuta_Init(Actor* thisx, PlayState* play);
 void BgHakaHuta_Destroy(Actor* thisx, PlayState* play);
@@ -111,33 +110,30 @@ void BgHakaHuta_SpawnEnemies(BgHakaHuta* this, PlayState* play) {
         this->actionFunc = BgHakaHuta_Open;
         OnePointCutscene_Init(play, 6001, 999, &this->dyna.actor, MAIN_CAM);
         if (this->unk_16A == 2) {
-            if (GameInteractor_Should(VB_HAKA_HUTA_SPAWN_KEESE, true, this, play)) {
-                Actor_Spawn(&play->actorCtx, play, ACTOR_EN_FIREFLY,
-                            (this->dyna.actor.world.pos.x + (-25.0f) * Math_CosS(this->dyna.actor.shape.rot.y) +
-                             40.0f * Math_SinS(this->dyna.actor.shape.rot.y)),
-                            this->dyna.actor.world.pos.y - 10.0f,
-                            (this->dyna.actor.world.pos.z - (-25.0f) * Math_SinS(this->dyna.actor.shape.rot.y) +
-                             Math_CosS(this->dyna.actor.shape.rot.y) * 40.0f),
-                            0, this->dyna.actor.shape.rot.y + 0x8000, 0, 2);
+            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_FIREFLY,
+                        (this->dyna.actor.world.pos.x + (-25.0f) * Math_CosS(this->dyna.actor.shape.rot.y) +
+                         40.0f * Math_SinS(this->dyna.actor.shape.rot.y)),
+                        this->dyna.actor.world.pos.y - 10.0f,
+                        (this->dyna.actor.world.pos.z - (-25.0f) * Math_SinS(this->dyna.actor.shape.rot.y) +
+                         Math_CosS(this->dyna.actor.shape.rot.y) * 40.0f),
+                        0, this->dyna.actor.shape.rot.y + 0x8000, 0, 2, true);
 
-                Actor_Spawn(&play->actorCtx, play, ACTOR_EN_FIREFLY,
-                            (this->dyna.actor.world.pos.x + (-25.0f) * (Math_CosS(this->dyna.actor.shape.rot.y)) +
-                             Math_SinS(this->dyna.actor.shape.rot.y) * 80.0f),
-                            this->dyna.actor.world.pos.y - 10.0f,
-                            (this->dyna.actor.world.pos.z - (-25.0f) * (Math_SinS(this->dyna.actor.shape.rot.y)) +
-                             Math_CosS(this->dyna.actor.shape.rot.y) * 80.0f),
-                            0, this->dyna.actor.shape.rot.y, 0, 2);
-            }
+            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_FIREFLY,
+                        (this->dyna.actor.world.pos.x + (-25.0f) * (Math_CosS(this->dyna.actor.shape.rot.y)) +
+                         Math_SinS(this->dyna.actor.shape.rot.y) * 80.0f),
+                        this->dyna.actor.world.pos.y - 10.0f,
+                        (this->dyna.actor.world.pos.z - (-25.0f) * (Math_SinS(this->dyna.actor.shape.rot.y)) +
+                         Math_CosS(this->dyna.actor.shape.rot.y) * 80.0f),
+                        0, this->dyna.actor.shape.rot.y, 0, 2, true);
+
         } else if (this->unk_16A == 1) {
-            if (GameInteractor_Should(VB_HAKA_HUTA_SPAWN_REDEAD, true, this, play)) {
-                Actor_Spawn(&play->actorCtx, play, ACTOR_EN_RD,
-                            (this->dyna.actor.home.pos.x + (-25.0f) * (Math_CosS(this->dyna.actor.shape.rot.y)) +
-                             Math_SinS(this->dyna.actor.shape.rot.y) * 100.0f),
-                            this->dyna.actor.home.pos.y - 40.0f,
-                            (this->dyna.actor.home.pos.z - (-25.0f) * (Math_SinS(this->dyna.actor.shape.rot.y)) +
-                             Math_CosS(this->dyna.actor.shape.rot.y) * 100.0f),
-                            0, this->dyna.actor.shape.rot.y, 0, 0xFD);
-            }
+            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_RD,
+                        (this->dyna.actor.home.pos.x + (-25.0f) * (Math_CosS(this->dyna.actor.shape.rot.y)) +
+                         Math_SinS(this->dyna.actor.shape.rot.y) * 100.0f),
+                        this->dyna.actor.home.pos.y - 40.0f,
+                        (this->dyna.actor.home.pos.z - (-25.0f) * (Math_SinS(this->dyna.actor.shape.rot.y)) +
+                         Math_CosS(this->dyna.actor.shape.rot.y) * 100.0f),
+                        0, this->dyna.actor.shape.rot.y, 0, 0xFD, true);
         }
     }
 }

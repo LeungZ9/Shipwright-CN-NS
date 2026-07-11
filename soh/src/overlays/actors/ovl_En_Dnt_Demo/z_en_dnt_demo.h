@@ -64,6 +64,4 @@ typedef enum {
     /* 5 */ DNT_ACTION_PRIZE
 } EnDntAction;
 
-void EnDntDemo_Judge(EnDntDemo* enDntDemo, PlayState* play);
-
 #endif

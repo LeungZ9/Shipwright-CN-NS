@@ -37,6 +37,4 @@ typedef struct EnSkj {
     /* 0x02F4 */ Vec3f posCopy;
 } EnSkj; // size = 0x0300
 
-void EnSkj_CleanupOcarinaGame(EnSkj* enSkj, PlayState* play);
-
 #endif

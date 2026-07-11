@@ -63,6 +63,7 @@ void func_800AA0B4(void) {
 
     gPadMgr.retraceCallback = func_800A9F30;
     gPadMgr.retraceCallbackValue = 0;
+
 }
 
 void func_800AA0F0(void) {
@@ -84,7 +85,7 @@ void func_800AA15C(void) {
     D_80160FD0.unk_104 = 2;
 }
 
-void Rumble_ClearRequests(void) {
+void func_800AA16C(void) {
     D_80160FD0.unk_104 = 0;
 }
 

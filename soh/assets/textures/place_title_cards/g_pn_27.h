@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gHyruleFieldTitleCardGERTex[] = dgHyruleFieldTi
 static const ALIGN_ASSET(2) char gHyruleFieldTitleCardFRATex[] = dgHyruleFieldTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgHyruleFieldTitleCardCHITex "__OTR__textures/g_pn_27/gHyruleFieldTitleCardCHITex"
 static const ALIGN_ASSET(2) char gHyruleFieldTitleCardCHITex[] = dgHyruleFieldTitleCardCHITex;

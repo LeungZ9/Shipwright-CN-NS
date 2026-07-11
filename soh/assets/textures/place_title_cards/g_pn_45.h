@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gFairysFountainTitleCardGERTex[] = dgFairysFoun
 static const ALIGN_ASSET(2) char gFairysFountainTitleCardFRATex[] = dgFairysFountainTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgFairysFountainTitleCardCHITex "__OTR__textures/g_pn_45/gFairysFountainTitleCardCHITex"
 static const ALIGN_ASSET(2) char gFairysFountainTitleCardCHITex[] = dgFairysFountainTitleCardCHITex;

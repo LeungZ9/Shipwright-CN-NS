@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gFishingPondTitleCardGERTex[] = dgFishingPondTi
 static const ALIGN_ASSET(2) char gFishingPondTitleCardFRATex[] = dgFishingPondTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgFishingPondTitleCardCHITex "__OTR__textures/g_pn_46/gFishingPondTitleCardCHITex"
 static const ALIGN_ASSET(2) char gFishingPondTitleCardCHITex[] = dgFishingPondTitleCardCHITex;

@@ -1,9 +1,8 @@
 #include "z_bg_spot18_basket.h"
 #include "objects/object_spot18_obj/object_spot18_obj.h"
 #include "vt.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
-#define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
+#define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
 void BgSpot18Basket_Init(Actor* thisx, PlayState* play);
 void BgSpot18Basket_Destroy(Actor* thisx, PlayState* play);
@@ -153,9 +152,10 @@ void BgSpot18Basket_Init(Actor* thisx, PlayState* play) {
     }
 
     func_808B7AEC(this);
-    Actor_SpawnAsChild(&play->actorCtx, &this->dyna.actor, play, ACTOR_BG_SPOT18_FUTA, this->dyna.actor.world.pos.x,
-                       this->dyna.actor.world.pos.y, this->dyna.actor.world.pos.z, this->dyna.actor.shape.rot.x,
-                       this->dyna.actor.shape.rot.y + 0x1555, this->dyna.actor.shape.rot.z, -1);
+    Actor_SpawnAsChild(&play->actorCtx, &this->dyna.actor, play, ACTOR_BG_SPOT18_FUTA,
+                       this->dyna.actor.world.pos.x, this->dyna.actor.world.pos.y, this->dyna.actor.world.pos.z,
+                       this->dyna.actor.shape.rot.x, this->dyna.actor.shape.rot.y + 0x1555,
+                       this->dyna.actor.shape.rot.z, -1);
 
     if (this->dyna.actor.child == NULL) {
         osSyncPrintf(VT_FGCOL(RED));
@@ -297,7 +297,7 @@ void func_808B7F74(BgSpot18Basket* this) {
     shapeRotY = this->dyna.actor.shape.rot.y;
     this->actionFunc = func_808B7FC0;
 
-    if (GameInteractor_Should(VB_WIN_GORON_POT, (shapeRotY < -0x2E93) || (shapeRotY >= 0x7C19))) {
+    if ((shapeRotY < -0x2E93) || (shapeRotY >= 0x7C19) || CVarGetInteger("gGoronPot", 0)) {
         this->unk_218 = 2;
     } else if (shapeRotY < 0x26C2) {
         this->unk_218 = 1;
@@ -418,9 +418,9 @@ void func_808B81A0(BgSpot18Basket* this, PlayState* play) {
         }
     } else if (this->unk_216 == 2) {
         if (this->unk_218 == 2) {
-            Sfx_PlaySfxCentered(NA_SE_SY_CORRECT_CHIME);
+            func_80078884(NA_SE_SY_CORRECT_CHIME);
         } else {
-            Sfx_PlaySfxCentered(NA_SE_SY_TRE_BOX_APPEAR);
+            func_80078884(NA_SE_SY_TRE_BOX_APPEAR);
         }
     } else if (this->unk_216 == 200) {
         func_808B7BB0(this);

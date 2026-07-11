@@ -1,25 +1,20 @@
 #include "global.h"
 
-#include <libultraship/bridge/gfxbridge.h>
-
-UcodeHandlers sDefaultGSPUCodeText = ucode_f3dex2;
-// u64* sDefaultGSPUCodeData = gspF3DZEX2_NoN_PosLight_fifoDataStart;
+//uintptr_t D_8012DBA0 = (uintptr_t)&D_80155F50;
+//uintptr_t D_8012DBA4 = (uintptr_t)&D_80157580;
 
 uintptr_t SysUcode_GetUCodeBoot(void) {
-    // return rspbootTextStart;
-    return (uintptr_t)NULL;
+    //return &D_80009320;
 }
 
-size_t SysUcode_GetUCodeBootSize(void) {
-    // return (ptrdiff_t)((uintptr_t)rspbootTextEnd - (uintptr_t)rspbootTextStart);
-    return 0;
+uintptr_t SysUcode_GetUCodeBootSize(void) {
+    //return (uintptr_t)&D_800093F0 - (uintptr_t)&D_80009320;
 }
 
-uint32_t SysUcode_GetUCode(void) {
-    return sDefaultGSPUCodeText;
+uintptr_t SysUcode_GetUCode(void) {
+    //return D_8012DBA0;
 }
 
 uintptr_t SysUcode_GetUCodeData(void) {
-    // return sDefaultGSPUCodeData;
-    return (uintptr_t)NULL;
+    //return D_8012DBA4;
 }

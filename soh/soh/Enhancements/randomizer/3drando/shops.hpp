@@ -1,29 +1,23 @@
 #pragma once
-#include "../SeedContext.h"
+#include "item.hpp"
+#include "item_location.hpp"
 
 #include <vector>
 #include <array>
 
-struct PriceSettingsStruct {
-    RandomizerSettingKey main;
-    RandomizerSettingKey fixedPrice;
-    RandomizerSettingKey range1;
-    RandomizerSettingKey range2;
-    RandomizerSettingKey noWallet;
-    RandomizerSettingKey childWallet;
-    RandomizerSettingKey adultWallet;
-    RandomizerSettingKey giantWallet;
-    RandomizerSettingKey tycoonWallet;
-    RandomizerSettingKey affordable;
-
-    PriceSettingsStruct(RandomizerSettingKey _main, RandomizerSettingKey _fixedPrice, RandomizerSettingKey _range1,
-                        RandomizerSettingKey _range2, RandomizerSettingKey _noWallet, RandomizerSettingKey _childWallet,
-                        RandomizerSettingKey _adultWallet, RandomizerSettingKey _giantWallet,
-                        RandomizerSettingKey _tycoonWallet, RandomizerSettingKey _affordable);
+struct ItemAndPrice {
+    Text Name;
+    int Price;
+    bool Repurchaseable;
 };
 
 extern void PlaceVanillaShopItems();
-extern std::vector<RandomizerGet> GetMinVanillaShopItems(int total_replaced);
-extern uint16_t GetRandomPrice(Rando::Location* loc, PriceSettingsStruct priceSettings);
-extern uint16_t GetCheapBalancedPrice();
+extern std::vector<uint32_t> GetMinVanillaShopItems(int total_replaced);
+extern int GetRandomShopPrice();
+extern int16_t GetRandomScrubPrice();
 extern int GetShopsanityReplaceAmount();
+extern Text GetIceTrapName(uint8_t id);
+extern int GetShopIndex(uint32_t loc);
+extern int TransformShopIndex(int index);
+
+extern std::vector<ItemAndPrice> NonShopItems;

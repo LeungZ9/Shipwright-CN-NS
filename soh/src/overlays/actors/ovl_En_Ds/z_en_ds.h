@@ -21,8 +21,4 @@ typedef struct EnDs {
     /* 0x01EC */ EnDsActionFunc actionFunc;
 } EnDs; // size = 0x01F0
 
-void EnDs_Talk(EnDs* actor, PlayState* play);
-void EnDs_TalkAfterGiveOddPotion(EnDs* actor, PlayState* play);
-
-
 #endif

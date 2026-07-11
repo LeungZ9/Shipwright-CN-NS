@@ -11,11 +11,8 @@
 #include "overlays/actors/ovl_Bg_Gate_Shutter/z_bg_gate_shutter.h"
 #include "overlays/actors/ovl_En_Bom/z_en_bom.h"
 #include "overlays/actors/ovl_Bg_Spot15_Saku/z_bg_spot15_saku.h"
-#include "soh/ResourceManagerHelpers.h"
-#include "soh/Enhancements/game-interactor/GameInteractor.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
-#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY)
 
 void EnHeishi2_Init(Actor* thisx, PlayState* play);
 void EnHeishi2_Destroy(Actor* thisx, PlayState* play);
@@ -96,7 +93,7 @@ void EnHeishi2_Init(Actor* thisx, PlayState* play) {
 
     if ((this->type == 6) || (this->type == 9)) {
         this->actor.draw = EnHeishi2_DrawKingGuard;
-        this->actor.flags &= ~ACTOR_FLAG_ATTENTION_ENABLED;
+        this->actor.flags &= ~ACTOR_FLAG_TARGETABLE;
         Actor_ChangeCategory(play, &play->actorCtx, &this->actor, 6);
         if (this->type == 6) {
             this->actionFunc = EnHeishi2_DoNothing1;
@@ -115,15 +112,15 @@ void EnHeishi2_Init(Actor* thisx, PlayState* play) {
             this->actor.world.pos.z += 90.0f;
             this->actor.shape.rot.y = this->actor.world.rot.y;
             Collider_DestroyCylinder(play, &this->collider);
-            Player_SetCsActionWithHaltedActors(play, 0, 8);
-            this->actor.flags |= ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_UPDATE_CULLING_DISABLED;
+            func_8002DF54(play, 0, 8);
+            this->actor.flags |= ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_UPDATE_WHILE_CULLED;
             this->actionFunc = func_80A544AC;
         }
     } else {
         this->unk_2E0 = 60.0f;
         ActorShape_Init(&this->actor.shape, 0.0f, ActorShadow_DrawCircle, 30.0f);
-        SkelAnime_Init(play, &this->skelAnime, &gEnHeishiSkel, &gEnHeishiIdleAnim, this->jointTable, this->morphTable,
-                       17);
+        SkelAnime_Init(play, &this->skelAnime, &gEnHeishiSkel, &gEnHeishiIdleAnim, this->jointTable,
+                       this->morphTable, 17);
         collider = &this->collider;
         Collider_InitCylinder(play, collider);
         Collider_SetCylinder(play, collider, &this->actor, &sCylinderInit);
@@ -147,7 +144,7 @@ void EnHeishi2_Init(Actor* thisx, PlayState* play) {
                 // "Peep hole soldier!"
                 osSyncPrintf(VT_FGCOL(GREEN) " ☆☆☆☆☆ 覗き穴奥兵士ふぃ〜 ☆☆☆☆☆ \n" VT_RST);
                 Collider_DestroyCylinder(play, collider);
-                this->actor.flags &= ~(ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY);
+                this->actor.flags &= ~(ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY);
                 this->actionFunc = EnHeishi_DoNothing2;
                 break;
         }
@@ -189,54 +186,51 @@ void func_80A531E4(EnHeishi2* this, PlayState* play) {
 void func_80A53278(EnHeishi2* this, PlayState* play) {
     this->unk_30B = 0;
     this->unk_30E = 0;
-    if (GameInteractor_Should(VB_CAN_BRIBE_HEISHI2, true, this)) {
-        if (Text_GetFaceReaction(play, 5) != 0) {
-            this->actor.textId = Text_GetFaceReaction(play, 5);
-            this->unk_30B = 1;
-            this->unk_300 = TEXT_STATE_DONE;
-            this->actionFunc = func_80A5475C;
-        } else if ((Flags_GetEventChkInf(EVENTCHKINF_USED_DEKU_TREE_BLUE_WARP)) &&
-                   (Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP)) &&
-                   (Flags_GetEventChkInf(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP))) {
-            // "Get all spiritual stones!"
-            osSyncPrintf(VT_FGCOL(GREEN) " ☆☆☆☆☆ 全部の精霊石GET！ ☆☆☆☆☆ \n" VT_RST);
-            this->unk_300 = TEXT_STATE_DONE;
-            this->actor.textId = 0x7006;
-            this->actionFunc = func_80A5475C;
-        } else if (!IS_DAY) {
-            // "Sleep early for children!"
-            osSyncPrintf(VT_FGCOL(YELLOW) " ☆☆☆☆☆ 子供ははやくネロ！ ☆☆☆☆☆ \n" VT_RST);
-            this->unk_300 = TEXT_STATE_DONE;
-            this->actor.textId = 0x7002;
-            this->actionFunc = func_80A5475C;
+    if (Text_GetFaceReaction(play, 5) != 0) {
+        this->actor.textId = Text_GetFaceReaction(play, 5);
+        this->unk_30B = 1;
+        this->unk_300 = TEXT_STATE_DONE;
+        this->actionFunc = func_80A5475C;
+    } else if ((Flags_GetEventChkInf(EVENTCHKINF_USED_DEKU_TREE_BLUE_WARP)) && (Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP)) &&
+               (Flags_GetEventChkInf(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP))) {
+        // "Get all spiritual stones!"
+        osSyncPrintf(VT_FGCOL(GREEN) " ☆☆☆☆☆ 全部の精霊石GET！ ☆☆☆☆☆ \n" VT_RST);
+        this->unk_300 = TEXT_STATE_DONE;
+        this->actor.textId = 0x7006;
+        this->actionFunc = func_80A5475C;
+    } else if (!IS_DAY) {
+        // "Sleep early for children!"
+        osSyncPrintf(VT_FGCOL(YELLOW) " ☆☆☆☆☆ 子供ははやくネロ！ ☆☆☆☆☆ \n" VT_RST);
+        this->unk_300 = TEXT_STATE_DONE;
+        this->actor.textId = 0x7002;
+        this->actionFunc = func_80A5475C;
 
-        } else if (this->unk_30C != 0) {
-            // "Anything passes"
-            osSyncPrintf(VT_FGCOL(BLUE) " ☆☆☆☆☆ なんでも通るよ ☆☆☆☆☆ \n" VT_RST);
-            this->unk_300 = TEXT_STATE_DONE;
-            this->actor.textId = 0x7099;
-            this->actionFunc = func_80A5475C;
-        } else if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_POCKET_EGG)) {
-            if (this->unk_30E == 0) {
-                // "Start under the first sleeve!"
-                osSyncPrintf(VT_FGCOL(PURPLE) " ☆☆☆☆☆ １回目袖の下開始！ ☆☆☆☆☆ \n" VT_RST);
-                this->actor.textId = 0x7071;
-                this->unk_30E = 1;
-            } else {
-                // "Start under the second sleeve!"
-                osSyncPrintf(VT_FGCOL(PURPLE) " ☆☆☆☆☆ ２回目袖の下開始！ ☆☆☆☆☆ \n" VT_RST);
-                this->actor.textId = 0x7072;
-            }
-            this->unk_300 = TEXT_STATE_CHOICE;
-            this->actionFunc = func_80A5475C;
-
+    } else if (this->unk_30C != 0) {
+        // "Anything passes"
+        osSyncPrintf(VT_FGCOL(BLUE) " ☆☆☆☆☆ なんでも通るよ ☆☆☆☆☆ \n" VT_RST);
+        this->unk_300 = TEXT_STATE_DONE;
+        this->actor.textId = 0x7099;
+        this->actionFunc = func_80A5475C;
+    } else if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_POCKET_EGG)) {
+        if (this->unk_30E == 0) {
+            // "Start under the first sleeve!"
+            osSyncPrintf(VT_FGCOL(PURPLE) " ☆☆☆☆☆ １回目袖の下開始！ ☆☆☆☆☆ \n" VT_RST);
+            this->actor.textId = 0x7071;
+            this->unk_30E = 1;
         } else {
-            // "That's okay"
-            osSyncPrintf(VT_FGCOL(CYAN) " ☆☆☆☆☆ それはとおらんよぉ ☆☆☆☆☆ \n" VT_RST);
-            this->unk_300 = TEXT_STATE_DONE;
-            this->actor.textId = 0x7029;
-            this->actionFunc = func_80A5475C;
+            // "Start under the second sleeve!"
+            osSyncPrintf(VT_FGCOL(PURPLE) " ☆☆☆☆☆ ２回目袖の下開始！ ☆☆☆☆☆ \n" VT_RST);
+            this->actor.textId = 0x7072;
         }
+        this->unk_300 = TEXT_STATE_CHOICE;
+        this->actionFunc = func_80A5475C;
+
+    } else {
+        // "That's okay"
+        osSyncPrintf(VT_FGCOL(CYAN) " ☆☆☆☆☆ それはとおらんよぉ ☆☆☆☆☆ \n" VT_RST);
+        this->unk_300 = TEXT_STATE_DONE;
+        this->actor.textId = 0x7029;
+        this->actionFunc = func_80A5475C;
     }
 }
 
@@ -271,7 +265,7 @@ void func_80A5344C(EnHeishi2* this, PlayState* play) {
 void func_80A53538(EnHeishi2* this, PlayState* play) {
     SkelAnime_Update(&this->skelAnime);
     if (this->unk_300 == Message_GetState(&play->msgCtx) && Message_ShouldAdvance(play)) {
-        Player_SetCsActionWithHaltedActors(play, NULL, 8);
+        func_8002DF54(play, NULL, 8);
         play->msgCtx.msgMode = MSGMODE_PAUSED;
         this->actionFunc = func_80A535BC;
     }
@@ -316,21 +310,19 @@ void func_80A5372C(EnHeishi2* this, PlayState* play) {
     f32 frameCount = Animation_GetLastFrame(&gEnHeishiIdleAnim);
 
     Animation_Change(&this->skelAnime, &gEnHeishiIdleAnim, 1.0f, 0.0f, (s16)frameCount, ANIMMODE_LOOP, -10.0f);
-    if (GameInteractor_Should(VB_PLAY_GATE_OPENING_OR_CLOSING_CS, true, this, false)) {
-        this->unk_2F2[0] = 200;
-        this->cameraId = Play_CreateSubCamera(play);
-        Play_ChangeCameraStatus(play, MAIN_CAM, CAM_STAT_WAIT);
-        Play_ChangeCameraStatus(play, this->cameraId, CAM_STAT_ACTIVE);
-        this->unk_280.x = 947.0f;
-        this->unk_280.y = 1195.0f;
-        this->unk_280.z = 2682.0f;
+    this->unk_2F2[0] = 200;
+    this->cameraId = Play_CreateSubCamera(play);
+    Play_ChangeCameraStatus(play, MAIN_CAM, CAM_STAT_WAIT);
+    Play_ChangeCameraStatus(play, this->cameraId, CAM_STAT_ACTIVE);
+    this->unk_280.x = 947.0f;
+    this->unk_280.y = 1195.0f;
+    this->unk_280.z = 2682.0f;
 
-        this->unk_28C.x = 1164.0f;
-        this->unk_28C.y = 1145.0f;
-        this->unk_28C.z = 3014.0f;
+    this->unk_28C.x = 1164.0f;
+    this->unk_28C.y = 1145.0f;
+    this->unk_28C.z = 3014.0f;
 
-        Play_CameraSetAtEye(play, this->cameraId, &this->unk_280, &this->unk_28C);
-    }
+    Play_CameraSetAtEye(play, this->cameraId, &this->unk_280, &this->unk_28C);
     this->actionFunc = func_80A53850;
 }
 
@@ -338,18 +330,14 @@ void func_80A53850(EnHeishi2* this, PlayState* play) {
     BgSpot15Saku* gate;
 
     SkelAnime_Update(&this->skelAnime);
-    if (GameInteractor_Should(VB_PLAY_GATE_OPENING_OR_CLOSING_CS, true, this, false)) {
-        Play_CameraSetAtEye(play, this->cameraId, &this->unk_280, &this->unk_28C);
-    }
+    Play_CameraSetAtEye(play, this->cameraId, &this->unk_280, &this->unk_28C);
     gate = (BgSpot15Saku*)this->gate;
     if ((this->unk_2F2[0] == 0) || (gate->unk_168 == 0)) {
-        if (GameInteractor_Should(VB_PLAY_GATE_OPENING_OR_CLOSING_CS, true, this, true)) {
-            Play_ClearCamera(play, this->cameraId);
-            Play_ChangeCameraStatus(play, MAIN_CAM, CAM_STAT_ACTIVE);
-        }
+        Play_ClearCamera(play, this->cameraId);
+        Play_ChangeCameraStatus(play, MAIN_CAM, CAM_STAT_ACTIVE);
         Message_CloseTextbox(play);
         this->unk_30C = 1;
-        Player_SetCsActionWithHaltedActors(play, NULL, 7);
+        func_8002DF54(play, NULL, 7);
         this->actionFunc = func_80A531E4;
     }
 }
@@ -418,9 +406,8 @@ void func_80A53AD4(EnHeishi2* this, PlayState* play) {
     this->unk_300 = TEXT_STATE_DONE;
     if (Actor_ProcessTalkRequest(&this->actor, play)) {
         exchangeItemId = func_8002F368(play);
-        if (GameInteractor_Should(VB_HEISHI2_ACCEPT_ITEM_AS_ZELDAS_LETTER, exchangeItemId == EXCH_ITEM_LETTER_ZELDA,
-                                  exchangeItemId)) {
-            Sfx_PlaySfxCentered(NA_SE_SY_CORRECT_CHIME);
+        if (exchangeItemId == EXCH_ITEM_LETTER_ZELDA) {
+            func_80078884(NA_SE_SY_CORRECT_CHIME);
             player->actor.textId = 0x2010;
             this->unk_300 = TEXT_STATE_EVENT;
             this->actionFunc = func_80A53C0C;
@@ -439,7 +426,7 @@ void func_80A53AD4(EnHeishi2* this, PlayState* play) {
 void func_80A53C0C(EnHeishi2* this, PlayState* play) {
     SkelAnime_Update(&this->skelAnime);
     if ((this->unk_300 == Message_GetState(&play->msgCtx)) && Message_ShouldAdvance(play)) {
-        Player_SetCsActionWithHaltedActors(play, 0, 8);
+        func_8002DF54(play, 0, 8);
         play->msgCtx.msgMode = MSGMODE_PAUSED;
         this->actionFunc = func_80A53C90;
     }
@@ -487,25 +474,23 @@ void func_80A53DF8(EnHeishi2* this, PlayState* play) {
     f32 frameCount = Animation_GetLastFrame(&gEnHeishiIdleAnim);
 
     Animation_Change(&this->skelAnime, &gEnHeishiIdleAnim, 1.0f, 0.0f, (s16)frameCount, ANIMMODE_LOOP, -10.0f);
-    if (GameInteractor_Should(VB_PLAY_GATE_OPENING_OR_CLOSING_CS, true, this, false)) {
-        this->unk_2F2[0] = 200;
-        this->cameraId = Play_CreateSubCamera(play);
-        Play_ChangeCameraStatus(play, MAIN_CAM, CAM_STAT_WAIT);
-        Play_ChangeCameraStatus(play, this->cameraId, CAM_STAT_ACTIVE);
-        this->unk_2BC.x = -71.0f;
-        this->unk_280.x = -71.0f;
-        this->unk_2BC.y = 571.0f;
-        this->unk_280.y = 571.0f;
-        this->unk_2BC.z = -1487.0f;
-        this->unk_280.z = -1487.0f;
-        this->unk_298.x = 181.0f;
-        this->unk_28C.x = 181.0f;
-        this->unk_298.y = 417.0f;
-        this->unk_28C.y = 417.0f;
-        this->unk_298.z = -1079.0f;
-        this->unk_28C.z = -1079.0f;
-        Play_CameraSetAtEye(play, this->cameraId, &this->unk_280, &this->unk_28C);
-    }
+    this->unk_2F2[0] = 200;
+    this->cameraId = Play_CreateSubCamera(play);
+    Play_ChangeCameraStatus(play, MAIN_CAM, CAM_STAT_WAIT);
+    Play_ChangeCameraStatus(play, this->cameraId, CAM_STAT_ACTIVE);
+    this->unk_2BC.x = -71.0f;
+    this->unk_280.x = -71.0f;
+    this->unk_2BC.y = 571.0f;
+    this->unk_280.y = 571.0f;
+    this->unk_2BC.z = -1487.0f;
+    this->unk_280.z = -1487.0f;
+    this->unk_298.x = 181.0f;
+    this->unk_28C.x = 181.0f;
+    this->unk_298.y = 417.0f;
+    this->unk_28C.y = 417.0f;
+    this->unk_298.z = -1079.0f;
+    this->unk_28C.z = -1079.0f;
+    Play_CameraSetAtEye(play, this->cameraId, &this->unk_280, &this->unk_28C);
     this->actionFunc = func_80A53F30;
 }
 
@@ -513,15 +498,11 @@ void func_80A53F30(EnHeishi2* this, PlayState* play) {
     BgGateShutter* gate;
 
     SkelAnime_Update(&this->skelAnime);
-    if (GameInteractor_Should(VB_PLAY_GATE_OPENING_OR_CLOSING_CS, true, this, false)) {
-        Play_CameraSetAtEye(play, this->cameraId, &this->unk_280, &this->unk_28C);
-    }
+    Play_CameraSetAtEye(play, this->cameraId, &this->unk_280, &this->unk_28C);
     gate = (BgGateShutter*)this->gate;
     if ((this->unk_2F2[0] == 0) || (gate->openingState == 0)) {
-        if (GameInteractor_Should(VB_PLAY_GATE_OPENING_OR_CLOSING_CS, true, this, true)) {
-            Play_ClearCamera(play, this->cameraId);
-            Play_ChangeCameraStatus(play, MAIN_CAM, CAM_STAT_ACTIVE);
-        }
+        Play_ClearCamera(play, this->cameraId);
+        Play_ChangeCameraStatus(play, MAIN_CAM, CAM_STAT_ACTIVE);
         if ((this->unk_30A != 2)) {
             if (this->unk_30A == 0) {
                 this->actor.textId = 0x2015;
@@ -529,7 +510,7 @@ void func_80A53F30(EnHeishi2* this, PlayState* play) {
                 this->actionFunc = func_80A54038;
             } else {
                 Message_CloseTextbox(play);
-                Player_SetCsActionWithHaltedActors(play, NULL, 7);
+                func_8002DF54(play, NULL, 7);
                 this->actionFunc = func_80A53908;
             }
         } else {
@@ -547,7 +528,7 @@ void func_80A54038(EnHeishi2* this, PlayState* play) {
     if ((Message_GetState(&play->msgCtx) == TEXT_STATE_EVENT) && Message_ShouldAdvance(play)) {
         Flags_SetInfTable(INFTABLE_SHOWED_ZELDAS_LETTER_TO_GATE_GUARD);
         Message_CloseTextbox(play);
-        Player_SetCsActionWithHaltedActors(play, 0, 7);
+        func_8002DF54(play, 0, 7);
         this->actionFunc = func_80A53908;
     }
 }
@@ -659,7 +640,7 @@ void func_80A544AC(EnHeishi2* this, PlayState* play) {
     this->actor.world.rot.z = this->actor.shape.rot.z;
     if (this->actor.shape.rot.z < -6000) {
         Message_StartTextbox(play, 0x708F, NULL);
-        this->actor.flags |= ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
+        this->actor.flags |= ACTOR_FLAG_WILL_TALK;
         this->actionFunc = func_80A5455C;
         this->unk_2E4 = 0.0f;
     }
@@ -672,14 +653,14 @@ void func_80A5455C(EnHeishi2* this, PlayState* play) {
     EnBom* bomb;
 
     if ((Message_GetState(&play->msgCtx) == TEXT_STATE_EVENT) && Message_ShouldAdvance(play)) {
-        Player_SetCsActionWithHaltedActors(play, NULL, 7);
+        func_8002DF54(play, NULL, 7);
         Message_CloseTextbox(play);
 
         pos.x = Rand_CenteredFloat(20.0f) + this->unk_274.x;
         pos.y = Rand_CenteredFloat(20.0f) + (this->unk_274.y - 40.0f);
         pos.z = Rand_CenteredFloat(20.0f) + (this->unk_274.z - 20.0f);
         rotY = Rand_CenteredFloat(7000.0f) + this->actor.yawTowardsPlayer;
-        bomb = (EnBom*)Actor_Spawn(&play->actorCtx, play, ACTOR_EN_BOM, pos.x, pos.y, pos.z, 0, rotY, 0, 0);
+        bomb = (EnBom*)Actor_Spawn(&play->actorCtx, play, ACTOR_EN_BOM, pos.x, pos.y, pos.z, 0, rotY, 0, 0, true);
         if (bomb != NULL) {
             bomb->actor.speedXZ = Rand_CenteredFloat(5.0f) + 10.0f;
             bomb->actor.velocity.y = Rand_CenteredFloat(5.0f) + 10.0f;
@@ -747,7 +728,7 @@ void func_80A5475C(EnHeishi2* this, PlayState* play) {
 
             if (this->unk_300 == TEXT_STATE_CHOICE) {
                 this->unk_309 = 1;
-                Sfx_PlaySfxCentered(NA_SE_SY_TRE_BOX_APPEAR);
+                func_80078884(NA_SE_SY_TRE_BOX_APPEAR);
                 this->actionFunc = func_80A540C0;
             }
             return;
@@ -802,7 +783,7 @@ void EnHeishi2_Update(Actor* thisx, PlayState* play) {
         }
     }
     this->actionFunc(this, play);
-    Actor_MoveXZGravity(&this->actor);
+    Actor_MoveForward(&this->actor);
     switch (this->type) {
         case 6:
             break;
@@ -816,7 +797,8 @@ void EnHeishi2_Update(Actor* thisx, PlayState* play) {
     }
 }
 
-s32 EnHeishi2_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot, void* thisx) {
+s32 EnHeishi2_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot,
+                               void* thisx) {
     EnHeishi2* this = (EnHeishi2*)thisx;
 
     switch (this->type) {
@@ -848,7 +830,8 @@ void EnHeishi2_PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s* 
 void EnHeishi2_DrawKingGuard(Actor* thisx, PlayState* play) {
     OPEN_DISPS(play->state.gfxCtx);
 
-    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
     gSPDisplayList(POLY_OPA_DISP++, gHeishiKingGuardDL);
 
     CLOSE_DISPS(play->state.gfxCtx);
@@ -863,7 +846,8 @@ void EnHeishi2_Draw(Actor* thisx, PlayState* play) {
 
     Gfx_SetupDL_25Opa(play->state.gfxCtx);
 
-    SkelAnime_DrawSkeletonOpa(play, &this->skelAnime, EnHeishi2_OverrideLimbDraw, EnHeishi2_PostLimbDraw, this);
+    SkelAnime_DrawSkeletonOpa(play, &this->skelAnime, EnHeishi2_OverrideLimbDraw,
+                      EnHeishi2_PostLimbDraw, this);
     if ((this->type == 5) && (Flags_GetInfTable(INFTABLE_GATE_GUARD_PUT_ON_KEATON_MASK))) {
         linkObjBankIndex = Object_GetIndex(&play->objectCtx, OBJECT_LINK_CHILD);
         if (linkObjBankIndex >= 0) {

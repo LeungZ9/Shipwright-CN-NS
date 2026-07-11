@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gGraveyardTitleCardGERTex[] = dgGraveyardTitleC
 static const ALIGN_ASSET(2) char gGraveyardTitleCardFRATex[] = dgGraveyardTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgGraveyardTitleCardCHITex "__OTR__textures/g_pn_29/gGraveyardTitleCardCHITex"
 static const ALIGN_ASSET(2) char gGraveyardTitleCardCHITex[] = dgGraveyardTitleCardCHITex;

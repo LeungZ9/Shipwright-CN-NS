@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gLonLonRanchTitleCardGERTex[] = dgLonLonRanchTi
 static const ALIGN_ASSET(2) char gLonLonRanchTitleCardFRATex[] = dgLonLonRanchTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgLonLonRanchTitleCardCHITex "__OTR__textures/g_pn_42/gLonLonRanchTitleCardCHITex"
 static const ALIGN_ASSET(2) char gLonLonRanchTitleCardCHITex[] = dgLonLonRanchTitleCardCHITex;

@@ -1,29 +1,38 @@
 #include "soh/resource/importer/scenecommand/EndMarkerFactory.h"
 #include "soh/resource/type/scenecommand/EndMarker.h"
-#include "soh/resource/logging/SceneCommandLoggers.h"
 #include "spdlog/spdlog.h"
-#include <tinyxml2.h>
 
-namespace SOH {
-std::shared_ptr<Ship::IResource> EndMarkerFactory::ReadResource(std::shared_ptr<Ship::ResourceInitData> initData,
-                                                                std::shared_ptr<Ship::BinaryReader> reader) {
-    auto endMarker = std::make_shared<EndMarker>(initData);
+namespace LUS {
+std::shared_ptr<IResource>
+EndMarkerFactory::ReadResource(std::shared_ptr<ResourceInitData> initData, std::shared_ptr<BinaryReader> reader) {
+    auto resource = std::make_shared<EndMarker>(initData);
+    std::shared_ptr<ResourceVersionFactory> factory = nullptr;
 
-    ReadCommandId(endMarker, reader);
-
-    if (CVarGetInteger(CVAR_DEVELOPER_TOOLS("ResourceLogging"), 0)) {
-        LogEndMarkerAsXML(endMarker);
+    switch (resource->GetInitData()->ResourceVersion) {
+    case 0:
+	factory = std::make_shared<EndMarkerFactoryV0>();
+	break;
     }
 
-    return endMarker;
+    if (factory == nullptr) {
+        SPDLOG_ERROR("Failed to load EndMarker with version {}", resource->GetInitData()->ResourceVersion);
+	return nullptr;
+    }
+
+    factory->ParseFileBinary(reader, resource);
+
+    return resource;
 }
 
-std::shared_ptr<Ship::IResource> EndMarkerFactoryXML::ReadResource(std::shared_ptr<Ship::ResourceInitData> initData,
-                                                                   tinyxml2::XMLElement* reader) {
-    auto endMarker = std::make_shared<EndMarker>(initData);
+void LUS::EndMarkerFactoryV0::ParseFileBinary(std::shared_ptr<BinaryReader> reader,
+                                        std::shared_ptr<IResource> resource)
+{
+    std::shared_ptr<EndMarker> endMarker = std::static_pointer_cast<EndMarker>(resource);
+    ResourceVersionFactory::ParseFileBinary(reader, endMarker);
 
-    endMarker->cmdId = SceneCommandID::EndMarker;
-
-    return endMarker;
+    ReadCommandId(endMarker, reader);
+	
+    // This has no data.
 }
-} // namespace SOH
+
+} // namespace LUS

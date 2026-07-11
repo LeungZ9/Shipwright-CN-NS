@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gMarketTitleCardGERTex[] = dgMarketTitleCardGER
 static const ALIGN_ASSET(2) char gMarketTitleCardFRATex[] = dgMarketTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgMarketTitleCardCHITex "__OTR__textures/g_pn_17/gMarketTitleCardCHITex"
 static const ALIGN_ASSET(2) char gMarketTitleCardCHITex[] = dgMarketTitleCardCHITex;

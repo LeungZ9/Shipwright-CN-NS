@@ -7,9 +7,8 @@
 #include "z_en_hintnuts.h"
 #include "objects/object_hintnuts/object_hintnuts.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
-#include "soh/ResourceManagerHelpers.h"
 
-#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOSTILE)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_HOSTILE)
 
 void EnHintnuts_Init(Actor* thisx, PlayState* play);
 void EnHintnuts_Destroy(Actor* thisx, PlayState* play);
@@ -78,11 +77,11 @@ void EnHintnuts_Init(Actor* thisx, PlayState* play) {
 
     Actor_ProcessInitChain(&this->actor, sInitChain);
     if (this->actor.params == 0xA) {
-        this->actor.flags &= ~(ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOSTILE);
+        this->actor.flags &= ~(ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_HOSTILE);
     } else {
         ActorShape_Init(&this->actor.shape, 0x0, ActorShadow_DrawCircle, 35.0f);
-        SkelAnime_Init(play, &this->skelAnime, &gHintNutsSkel, &gHintNutsStandAnim, this->jointTable, this->morphTable,
-                       10);
+        SkelAnime_Init(play, &this->skelAnime, &gHintNutsSkel, &gHintNutsStandAnim, this->jointTable,
+                       this->morphTable, 10);
         Collider_InitCylinder(play, &this->collider);
         Collider_SetCylinder(play, &this->collider, &this->actor, &sCylinderInit);
         CollisionCheck_SetInfo(&this->actor.colChkInfo, NULL, &sColChkInfoInit);
@@ -115,8 +114,8 @@ void EnHintnuts_Destroy(Actor* thisx, PlayState* play) {
 void EnHintnuts_HitByScrubProjectile1(EnHintnuts* this, PlayState* play) {
     if (this->actor.textId != 0 && this->actor.category == ACTORCAT_ENEMY &&
         ((this->actor.params == 0) || (sPuzzleCounter == 2))) {
-        this->actor.flags &= ~(ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOSTILE);
-        this->actor.flags |= ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY;
+        this->actor.flags &= ~(ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_HOSTILE);
+        this->actor.flags |= ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY;
         Actor_ChangeCategory(play, &play->actorCtx, &this->actor, ACTORCAT_BG);
     }
 }
@@ -175,7 +174,7 @@ void EnHintnuts_HitByScrubProjectile2(EnHintnuts* this) {
             }
             sPuzzleCounter--;
         }
-        this->actor.flags |= ACTOR_FLAG_UPDATE_CULLING_DISABLED;
+        this->actor.flags |= ACTOR_FLAG_UPDATE_WHILE_CULLED;
         this->actionFunc = EnHintnuts_BeginFreeze;
     } else {
         this->actionFunc = EnHintnuts_BeginRun;
@@ -200,22 +199,22 @@ void EnHintnuts_SetupLeave(EnHintnuts* this, PlayState* play) {
     this->animFlagAndTimer = 100;
     this->actor.world.rot.y = this->actor.shape.rot.y;
     this->collider.base.ocFlags1 &= ~OC1_ON;
-    this->actor.flags |= ACTOR_FLAG_UPDATE_CULLING_DISABLED;
+    this->actor.flags |= ACTOR_FLAG_UPDATE_WHILE_CULLED;
     Audio_PlayActorSound2(&this->actor, NA_SE_EN_NUTS_DAMAGE);
     Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ITEM00, this->actor.world.pos.x, this->actor.world.pos.y,
-                this->actor.world.pos.z, 0x0, 0x0, 0x0, 0x3); // recovery heart
+                this->actor.world.pos.z, 0x0, 0x0, 0x0, 0x3, true); // recovery heart
     this->actionFunc = EnHintnuts_Leave;
 }
 
 void EnHintnuts_SetupFreeze(EnHintnuts* this) {
     Animation_PlayLoop(&this->skelAnime, &gHintNutsFreezeAnim);
-    this->actor.flags &= ~ACTOR_FLAG_ATTENTION_ENABLED;
+    this->actor.flags &= ~ACTOR_FLAG_TARGETABLE;
     Actor_SetColorFilter(&this->actor, 0, 0xFF, 0, 100);
     this->actor.colorFilterTimer = 1;
     this->animFlagAndTimer = 0;
     Audio_PlayActorSound2(&this->actor, NA_SE_EN_NUTS_FAINT);
     if (sPuzzleCounter == -3) {
-        Sfx_PlaySfxCentered(NA_SE_SY_ERROR);
+        func_80078884(NA_SE_SY_ERROR);
         sPuzzleCounter = -4;
     }
     this->actionFunc = EnHintnuts_Freeze;
@@ -291,8 +290,8 @@ void EnHintnuts_ThrowNut(EnHintnuts* this, PlayState* play) {
         nutPos.x = this->actor.world.pos.x + (Math_SinS(this->actor.shape.rot.y) * 23.0f);
         nutPos.y = this->actor.world.pos.y + 12.0f;
         nutPos.z = this->actor.world.pos.z + (Math_CosS(this->actor.shape.rot.y) * 23.0f);
-        if (Actor_Spawn(&play->actorCtx, play, ACTOR_EN_NUTSBALL, nutPos.x, nutPos.y, nutPos.z, this->actor.shape.rot.x,
-                        this->actor.shape.rot.y, this->actor.shape.rot.z, 1) != NULL) {
+        if (Actor_Spawn(&play->actorCtx, play, ACTOR_EN_NUTSBALL, nutPos.x, nutPos.y, nutPos.z,
+                        this->actor.shape.rot.x, this->actor.shape.rot.y, this->actor.shape.rot.z, 1, true) != NULL) {
             Audio_PlayActorSound2(&this->actor, NA_SE_EN_NUTS_THROW);
         }
     }
@@ -329,9 +328,9 @@ void EnHintnuts_BeginFreeze(EnHintnuts* this, PlayState* play) {
 void EnHintnuts_CheckProximity(EnHintnuts* this, PlayState* play) {
     if (this->actor.category != ACTORCAT_ENEMY) {
         if ((this->collider.base.ocFlags1 & OC1_HIT) || this->actor.isTargeted) {
-            this->actor.flags |= ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
+            this->actor.flags |= ACTOR_FLAG_WILL_TALK;
         } else {
-            this->actor.flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
+            this->actor.flags &= ~ACTOR_FLAG_WILL_TALK;
         }
         if (this->actor.xzDistToPlayer < 130.0f) {
             this->actor.textId = this->textIdCopy;
@@ -382,9 +381,8 @@ void EnHintnuts_Run(EnHintnuts* this, PlayState* play) {
                fabsf(this->actor.world.pos.y - this->actor.home.pos.y) < 2.0f) {
         this->actor.speedXZ = 0.0f;
         if (this->actor.category == ACTORCAT_BG) {
-            this->actor.flags &=
-                ~(ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED);
-            this->actor.flags |= ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOSTILE;
+            this->actor.flags &= ~(ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_WILL_TALK);
+            this->actor.flags |= ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_HOSTILE;
             Actor_ChangeCategory(play, &play->actorCtx, &this->actor, ACTORCAT_ENEMY);
         }
         EnHintnuts_SetupBurrow(this);
@@ -456,8 +454,8 @@ void EnHintnuts_Freeze(EnHintnuts* this, PlayState* play) {
         if (this->animFlagAndTimer == 1) {
             Actor_Kill(&this->actor);
         } else {
-            this->actor.flags |= ACTOR_FLAG_ATTENTION_ENABLED;
-            this->actor.flags &= ~ACTOR_FLAG_UPDATE_CULLING_DISABLED;
+            this->actor.flags |= ACTOR_FLAG_TARGETABLE;
+            this->actor.flags &= ~ACTOR_FLAG_UPDATE_WHILE_CULLED;
             this->actor.colChkInfo.health = sColChkInfoInit.health;
             this->actor.colorFilterTimer = 0;
             EnHintnuts_SetupWait(this);
@@ -489,9 +487,9 @@ void EnHintnuts_Update(Actor* thisx, PlayState* play) {
         EnHintnuts_ColliderCheck(this, play);
         this->actionFunc(this, play);
         if (this->actionFunc != EnHintnuts_Freeze && this->actionFunc != EnHintnuts_BeginFreeze) {
-            Actor_MoveXZGravity(&this->actor);
-            Actor_UpdateBgCheckInfo(play, &this->actor, 20.0f, this->collider.dim.radius, this->collider.dim.height,
-                                    0x1D);
+            Actor_MoveForward(&this->actor);
+            Actor_UpdateBgCheckInfo(play, &this->actor, 20.0f, this->collider.dim.radius,
+                                    this->collider.dim.height, 0x1D);
         }
         Collider_UpdateCylinder(&this->actor, &this->collider);
         if (this->collider.base.acFlags & AC_ON) {
@@ -509,7 +507,8 @@ void EnHintnuts_Update(Actor* thisx, PlayState* play) {
     }
 }
 
-s32 EnHintnuts_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot, void* thisx) {
+s32 EnHintnuts_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot,
+                                void* thisx) {
     Vec3f vec;
     f32 curFrame;
     EnHintnuts* this = (EnHintnuts*)thisx;
@@ -543,6 +542,8 @@ void EnHintnuts_Draw(Actor* thisx, PlayState* play) {
     if (this->actor.params == 0xA) {
         Gfx_DrawDListOpa(play, gHintNutsFlowerDL);
     } else {
-        SkelAnime_DrawSkeletonOpa(play, &this->skelAnime, EnHintnuts_OverrideLimbDraw, NULL, this);
+        SkelAnime_DrawSkeletonOpa(play, &this->skelAnime,
+                                  EnHintnuts_OverrideLimbDraw,
+                          NULL, this);
     }
 }

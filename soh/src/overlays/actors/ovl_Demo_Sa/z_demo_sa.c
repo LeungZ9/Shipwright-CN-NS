@@ -8,11 +8,11 @@
 #include "overlays/actors/ovl_En_Elf/z_en_elf.h"
 #include "overlays/actors/ovl_Door_Warp1/z_door_warp1.h"
 #include "objects/object_sa/object_sa.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/Enhancements/boss-rush/BossRush.h"
 
 #include "vt.h"
 
-#define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
+#define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
 void DemoSa_Init(Actor* thisx, PlayState* play);
 void DemoSa_Destroy(Actor* thisx, PlayState* play);
@@ -160,7 +160,7 @@ s32 DemoSa_UpdateSkelAnime(DemoSa* this) {
     return SkelAnime_Update(&this->skelAnime);
 }
 
-CsCmdActorCue* DemoSa_GetNpcAction(PlayState* play, s32 idx) {
+CsCmdActorAction* DemoSa_GetNpcAction(PlayState* play, s32 idx) {
     if (play->csCtx.state != CS_STATE_IDLE) {
         return play->csCtx.npcActions[idx];
     }
@@ -168,7 +168,7 @@ CsCmdActorCue* DemoSa_GetNpcAction(PlayState* play, s32 idx) {
 }
 
 s32 func_8098E654(DemoSa* this, PlayState* play, u16 arg2, s32 arg3) {
-    CsCmdActorCue* npcAction = DemoSa_GetNpcAction(play, arg3);
+    CsCmdActorAction* npcAction = DemoSa_GetNpcAction(play, arg3);
 
     if ((npcAction != NULL) && (npcAction->action == arg2)) {
         return 1;
@@ -177,7 +177,7 @@ s32 func_8098E654(DemoSa* this, PlayState* play, u16 arg2, s32 arg3) {
 }
 
 s32 func_8098E6A0(DemoSa* this, PlayState* play, u16 arg2, s32 arg3) {
-    CsCmdActorCue* npcAction = DemoSa_GetNpcAction(play, arg3);
+    CsCmdActorAction* npcAction = DemoSa_GetNpcAction(play, arg3);
 
     if ((npcAction != NULL) && (npcAction->action != arg2)) {
         return 1;
@@ -186,7 +186,7 @@ s32 func_8098E6A0(DemoSa* this, PlayState* play, u16 arg2, s32 arg3) {
 }
 
 void func_8098E6EC(DemoSa* this, PlayState* play, s32 actionIdx) {
-    CsCmdActorCue* npcAction = DemoSa_GetNpcAction(play, actionIdx);
+    CsCmdActorAction* npcAction = DemoSa_GetNpcAction(play, actionIdx);
 
     if (npcAction != NULL) {
         this->actor.world.pos.x = npcAction->startPos.x;
@@ -229,7 +229,8 @@ void func_8098E86C(DemoSa* this, PlayState* play) {
     f32 posY = world->y;
     f32 posZ = world->z;
 
-    Actor_SpawnAsChild(&play->actorCtx, &this->actor, play, ACTOR_DOOR_WARP1, posX, posY, posZ, 0, 0, 0, WARP_SAGES);
+    Actor_SpawnAsChild(&play->actorCtx, &this->actor, play, ACTOR_DOOR_WARP1, posX, posY, posZ, 0, 0, 0,
+                       WARP_SAGES);
 }
 
 void func_8098E8C8(DemoSa* this, PlayState* play) {
@@ -238,10 +239,9 @@ void func_8098E8C8(DemoSa* this, PlayState* play) {
     f32 posY = player->actor.world.pos.y + 80.0f;
     f32 posZ = player->actor.world.pos.z;
 
-    Actor_SpawnAsChild(&play->actorCtx, &this->actor, play, ACTOR_DEMO_EFFECT, posX, posY, posZ, 0, 0, 0, 0xB);
-    if (GameInteractor_Should(VB_GIVE_ITEM_FOREST_MEDALLION, true)) {
-        Item_Give(play, ITEM_MEDALLION_FOREST);
-    }
+    Actor_SpawnAsChild(&play->actorCtx, &this->actor, play, ACTOR_DEMO_EFFECT, posX, posY, posZ, 0, 0, 0,
+                       0xB);
+    Item_Give(play, ITEM_MEDALLION_FOREST);
 }
 
 void func_8098E944(DemoSa* this, PlayState* play) {
@@ -254,18 +254,24 @@ void func_8098E960(DemoSa* this, PlayState* play) {
 
     if ((gSaveContext.chamberCutsceneNum == 0) && (gSaveContext.sceneSetupIndex < 4)) {
         player = GET_PLAYER(play);
-        this->action = 1;
-        play->csCtx.segment = D_8099010C;
-        gSaveContext.cutsceneTrigger = 2;
-        if (GameInteractor_Should(VB_GIVE_ITEM_FOREST_MEDALLION, true)) {
+        if (!IS_BOSS_RUSH) {
+            this->action = 1;
+            play->csCtx.segment = D_8099010C;
+            gSaveContext.cutsceneTrigger = 2;
             Item_Give(play, ITEM_MEDALLION_FOREST);
+            player->actor.world.rot.y = player->actor.shape.rot.y = this->actor.world.rot.y + 0x8000;
+        } else {
+            this->action = 1;
+            if (gSaveContext.linkAge == LINK_AGE_CHILD) {
+                player->actor.world.rot.y = player->actor.shape.rot.y = -5461 + 0x8000;
+            }
+            BossRush_SpawnBlueWarps(play);
         }
-        player->actor.world.rot.y = player->actor.shape.rot.y = this->actor.world.rot.y + 0x8000;
     }
 }
 
 void func_8098E9EC(DemoSa* this, PlayState* play) {
-    CsCmdActorCue* npcAction;
+    CsCmdActorAction* npcAction;
 
     if (play->csCtx.state != CS_STATE_IDLE) {
         npcAction = play->csCtx.npcActions[4];
@@ -285,7 +291,7 @@ void func_8098EA3C(DemoSa* this) {
 }
 
 void func_8098EA68(DemoSa* this, PlayState* play) {
-    CsCmdActorCue* npcAction;
+    CsCmdActorAction* npcAction;
 
     if (play->csCtx.state != CS_STATE_IDLE) {
         npcAction = play->csCtx.npcActions[4];
@@ -306,7 +312,7 @@ void func_8098EB00(DemoSa* this, s32 arg1) {
 }
 
 void func_8098EB6C(DemoSa* this, PlayState* play) {
-    CsCmdActorCue* npcAction;
+    CsCmdActorAction* npcAction;
 
     if (play->csCtx.state != CS_STATE_IDLE) {
         npcAction = play->csCtx.npcActions[6];
@@ -376,7 +382,7 @@ void func_8098EDB0(DemoSa* this) {
 }
 
 void func_8098EE08(void) {
-    Sfx_PlaySfxCentered2(NA_SE_SY_WHITE_OUT_T);
+    func_800788CC(NA_SE_SY_WHITE_OUT_T);
 }
 
 void func_8098EE28(DemoSa* this, PlayState* play) {
@@ -477,8 +483,8 @@ void DemoSa_DrawXlu(DemoSa* this, PlayState* play) {
     gDPSetEnvColor(POLY_XLU_DISP++, 0, 0, 0, this->alpha);
     gSPSegment(POLY_XLU_DISP++, 0x0C, D_80116280);
 
-    POLY_XLU_DISP = SkelAnime_DrawFlex(play, skelAnime->skeleton, skelAnime->jointTable, skelAnime->dListCount, NULL,
-                                       NULL, NULL, POLY_XLU_DISP);
+    POLY_XLU_DISP = SkelAnime_DrawFlex(play, skelAnime->skeleton, skelAnime->jointTable, skelAnime->dListCount,
+                                       NULL, NULL, NULL, POLY_XLU_DISP);
 
     CLOSE_DISPS(play->state.gfxCtx);
 }
@@ -550,7 +556,7 @@ void func_8098F610(DemoSa* this, s32 arg1) {
 void func_8098F654(DemoSa* this, PlayState* play) {
     s32 unk_1AC;
     s32 action;
-    CsCmdActorCue* npcAction = DemoSa_GetNpcAction(play, 4);
+    CsCmdActorAction* npcAction = DemoSa_GetNpcAction(play, 4);
 
     if (npcAction != NULL) {
         action = npcAction->action;
@@ -613,8 +619,8 @@ void func_8098F83C(DemoSa* this, PlayState* play) {
     Vec3f* thisPos = &this->actor.world.pos;
 
     SkelAnime_InitFlex(play, &this->skelAnime, &gSariaSkel, &gSariaWaitOnBridgeAnim, NULL, NULL, 0);
-    Actor_SpawnAsChild(&play->actorCtx, &this->actor, play, ACTOR_EN_ELF, thisPos->x, thisPos->y, thisPos->z, 0, 0, 0,
-                       FAIRY_KOKIRI);
+    Actor_SpawnAsChild(&play->actorCtx, &this->actor, play, ACTOR_EN_ELF, thisPos->x, thisPos->y, thisPos->z,
+                       0, 0, 0, FAIRY_KOKIRI);
     this->action = 16;
     this->drawConfig = 0;
     this->actor.shape.shadowAlpha = 0;
@@ -695,7 +701,7 @@ void func_8098FB34(DemoSa* this, s32 arg1) {
 void func_8098FB68(DemoSa* this, PlayState* play) {
     s32 unk_1AC;
     s32 action;
-    CsCmdActorCue* npcAction = DemoSa_GetNpcAction(play, 1);
+    CsCmdActorAction* npcAction = DemoSa_GetNpcAction(play, 1);
 
     if (npcAction != NULL) {
         action = npcAction->action;

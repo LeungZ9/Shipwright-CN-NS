@@ -1,11 +1,11 @@
 #include "SetSpecialObjects.h"
 
-namespace SOH {
+namespace LUS {
 SpecialObjects* SetSpecialObjects::GetPointer() {
     return &specialObjects;
 }
 
 size_t SetSpecialObjects::GetPointerSize() {
-    return sizeof(SpecialObjects);
+	return sizeof(SpecialObjects);
 }
-} // namespace SOH
+} // namespace LUS

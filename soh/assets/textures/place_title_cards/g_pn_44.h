@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gRoyalFamilysTombTitleCardGERTex[] = dgRoyalFam
 static const ALIGN_ASSET(2) char gRoyalFamilysTombTitleCardFRATex[] = dgRoyalFamilysTombTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgRoyalFamilysTombTitleCardCHITex "__OTR__textures/g_pn_44/gRoyalFamilysTombTitleCardCHITex"
 static const ALIGN_ASSET(2) char gRoyalFamilysTombTitleCardCHITex[] = dgRoyalFamilysTombTitleCardCHITex;

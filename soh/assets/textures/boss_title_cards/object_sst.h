@@ -12,9 +12,6 @@ static const ALIGN_ASSET(2) char gBongoTitleCardGERTex[] = dgBongoTitleCardGERTe
 #define dgBongoTitleCardFRATex "__OTR__textures/object_sst/gBongoTitleCardFRATex"
 static const ALIGN_ASSET(2) char gBongoTitleCardFRATex[] = dgBongoTitleCardFRATex;
 
-#define dgBongoTitleCardJPNTex "__OTR__textures/object_sst/gBongoTitleCardJPNTex"
-static const ALIGN_ASSET(2) char gBongoTitleCardJPNTex[] = dgBongoTitleCardJPNTex;
-
 
 // #region SOH [Chinese]
 #define dgBongoTitleCardCHITex "__OTR__textures/object_sst/gBongoTitleCardCHITex"

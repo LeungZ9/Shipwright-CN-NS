@@ -1,10 +1,11 @@
 #include <libultraship/libultraship.h>
+#include "gameplaystats.h"
 
-class GameplayStatsWindow final : public Ship::GuiWindow {
+class GameplayStatsWindow : public LUS::GuiWindow {
   public:
     using GuiWindow::GuiWindow;
 
     void InitElement() override;
     void DrawElement() override;
-    void UpdateElement() override{};
+    void UpdateElement() override {};
 };

@@ -2,19 +2,41 @@
 #include "soh/resource/type/Cutscene.h"
 #include "spdlog/spdlog.h"
 
-static inline uint32_t read_CMD_BBBB(std::shared_ptr<Ship::BinaryReader> reader) {
+namespace LUS {
+std::shared_ptr<IResource>
+CutsceneFactory::ReadResource(std::shared_ptr<ResourceInitData> initData, std::shared_ptr<BinaryReader> reader) {
+    auto resource = std::make_shared<Cutscene>(initData);
+    std::shared_ptr<ResourceVersionFactory> factory = nullptr;
+
+    switch (resource->GetInitData()->ResourceVersion) {
+    case 0:
+	factory = std::make_shared<CutsceneFactoryV0>();
+	break;
+    }
+
+    if (factory == nullptr) {
+        SPDLOG_ERROR("Failed to load Cutscene with version {}", resource->GetInitData()->ResourceVersion);
+	return nullptr;
+    }
+
+    factory->ParseFileBinary(reader, resource);
+
+    return resource;
+}
+
+static inline uint32_t read_CMD_BBBB(std::shared_ptr<BinaryReader> reader) {
     uint32_t v;
     reader->Read((char*)&v, sizeof(uint32_t));
 
     return v;
 }
 
-static inline uint32_t read_CMD_BBH(std::shared_ptr<Ship::BinaryReader> reader) {
+static inline uint32_t read_CMD_BBH(std::shared_ptr<BinaryReader> reader) {
     uint32_t v;
     reader->Read((char*)&v, sizeof(uint32_t));
 
     // swap the half word to match endianness
-    if (reader->GetEndianness() != Ship::Endianness::Native) {
+    if (reader->GetEndianness() != LUS::Endianness::Native) {
         uint8_t* b = (uint8_t*)&v;
         uint8_t tmp = b[2];
         b[2] = b[3];
@@ -24,12 +46,12 @@ static inline uint32_t read_CMD_BBH(std::shared_ptr<Ship::BinaryReader> reader) 
     return v;
 }
 
-static inline uint32_t read_CMD_HBB(std::shared_ptr<Ship::BinaryReader> reader) {
+static inline uint32_t read_CMD_HBB(std::shared_ptr<BinaryReader> reader) {
     uint32_t v;
     reader->Read((char*)&v, sizeof(uint32_t));
 
     // swap the half word to match endianness
-    if (reader->GetEndianness() != Ship::Endianness::Native) {
+    if (reader->GetEndianness() != LUS::Endianness::Native) {
         uint8_t* b = (uint8_t*)&v;
         uint8_t tmp = b[0];
         b[0] = b[1];
@@ -39,12 +61,12 @@ static inline uint32_t read_CMD_HBB(std::shared_ptr<Ship::BinaryReader> reader) 
     return v;
 }
 
-static inline uint32_t read_CMD_HH(std::shared_ptr<Ship::BinaryReader> reader) {
+static inline uint32_t read_CMD_HH(std::shared_ptr<BinaryReader> reader) {
     uint32_t v;
     reader->Read((char*)&v, sizeof(uint32_t));
 
     // swap the half words to match endianness
-    if (reader->GetEndianness() != Ship::Endianness::Native) {
+    if (reader->GetEndianness() != LUS::Endianness::Native) {
         uint8_t* b = (uint8_t*)&v;
         uint8_t tmp = b[0];
         b[0] = b[1];
@@ -57,16 +79,11 @@ static inline uint32_t read_CMD_HH(std::shared_ptr<Ship::BinaryReader> reader) {
     return v;
 }
 
-namespace SOH {
-std::shared_ptr<Ship::IResource>
-ResourceFactoryBinaryCutsceneV0::ReadResource(std::shared_ptr<Ship::File> file,
-                                              std::shared_ptr<Ship::ResourceInitData> initData) {
-    if (!FileHasValidFormatAndReader(file, initData)) {
-        return nullptr;
-    }
-
-    auto cutscene = std::make_shared<Cutscene>(initData);
-    auto reader = std::get<std::shared_ptr<Ship::BinaryReader>>(file->Reader);
+void LUS::CutsceneFactoryV0::ParseFileBinary(std::shared_ptr<BinaryReader> reader,
+                                              std::shared_ptr<IResource> resource)
+{
+    std::shared_ptr<Cutscene> cutscene = std::static_pointer_cast<Cutscene>(resource);
+    ResourceVersionFactory::ParseFileBinary(reader, cutscene);
 
     uint32_t numEntries = reader->ReadUInt32();
     cutscene->commands.reserve(numEntries);
@@ -442,7 +459,7 @@ ResourceFactoryBinaryCutsceneV0::ReadResource(std::shared_ptr<Ship::File> file,
             case 0xFFFFFFFF: // CS_END
             {
                 cutscene->commands.push_back(reader->ReadUInt32());
-                return cutscene;
+                return;
             }
             default:
                 SPDLOG_TRACE("CutsceneV0: Unknown command {}\n", commandId);
@@ -450,7 +467,5 @@ ResourceFactoryBinaryCutsceneV0::ReadResource(std::shared_ptr<Ship::File> file,
                 break;
         }
     }
-
-    return cutscene;
 }
-} // namespace SOH
+} // namespace LUS

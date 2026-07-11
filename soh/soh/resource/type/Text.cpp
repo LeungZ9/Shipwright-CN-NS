@@ -1,11 +1,11 @@
 #include "Text.h"
 
-namespace SOH {
+namespace LUS {
 MessageEntry* Text::GetPointer() {
     return messages.data();
 }
 
 size_t Text::GetPointerSize() {
-    return messages.size() * sizeof(MessageEntry);
+	return messages.size() * sizeof(MessageEntry);
 }
-} // namespace SOH
+} // namespace LUS

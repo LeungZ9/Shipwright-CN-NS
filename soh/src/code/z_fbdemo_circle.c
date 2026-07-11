@@ -1,7 +1,5 @@
 #include "global.h"
 #include <string.h>
-#include "soh/OTRGlobals.h"
-#include "soh/ResourceManagerHelpers.h"
 
 // unused
 Gfx sCircleNullDList[] = {
@@ -11,50 +9,46 @@ Gfx sCircleNullDList[] = {
 //#include "code/fbdemo_circle/z_fbdemo_circle.c"
 #include "code/fbdemo_circle/z_fbdemo_circle.h"
 
-Gfx sTransCircleDL[] = {
-    gsDPPipeSync(),
-    gsSPClearGeometryMode(G_ZBUFFER | G_SHADE | G_CULL_BOTH | G_FOG | G_LIGHTING | G_TEXTURE_GEN |
+Gfx __sCircleDList[] = {
+    gsDPPipeSync(),                                                                                                 // 0
+    gsSPClearGeometryMode(G_ZBUFFER | G_SHADE | G_CULL_BOTH | G_FOG | G_LIGHTING | G_TEXTURE_GEN |                  // 1
                           G_TEXTURE_GEN_LINEAR | G_LOD | G_SHADING_SMOOTH),
-    gsSPSetGeometryMode(G_SHADE | G_SHADING_SMOOTH),
-    gsDPSetOtherMode(G_AD_DISABLE | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE |
+    gsSPSetGeometryMode(G_SHADE | G_SHADING_SMOOTH),                                                                // 2
+    gsDPSetOtherMode(G_AD_DISABLE | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE |    // 3
                          G_TD_CLAMP | G_TP_PERSP | G_CYC_1CYCLE | G_PM_NPRIMITIVE,
-                     G_AC_NONE | G_ZS_PIXEL | G_RM_XLU_SURF | G_RM_XLU_SURF2),
-    gsDPSetCombineMode(G_CC_BLENDPEDECALA, G_CC_BLENDPEDECALA),
-    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON),
-    gsDPLoadTextureBlock(SEG_ADDR(8, 0), G_IM_FMT_I, G_IM_SIZ_8b, 16, 64, 0, G_TX_NOMIRROR | G_TX_WRAP,
+                     G_AC_NONE | G_ZS_PIXEL | G_RM_XLU_SURF | G_RM_XLU_SURF2),                                      // 4
+    gsDPSetCombineMode(G_CC_BLENDPEDECALA, G_CC_BLENDPEDECALA),                                                     // 5
+    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON),                                                          // 6
+    gsDPLoadTextureBlock(SEG_ADDR(8, 0), G_IM_FMT_I, G_IM_SIZ_8b, 16, 64, 0, G_TX_NOMIRROR | G_TX_WRAP,                 // 7
                          G_TX_NOMIRROR | G_TX_CLAMP, 4, 6, G_TX_NOLOD, G_TX_NOLOD),
-    gsSPDisplayList(SEG_ADDR(9, 0)),
-    // OTRTODO: Add proper gsSPVertexOTRFilepath macro
-    { G_VTX_OTR_FILEPATH << 24, (uintptr_t)sTransCircleVtx },
-    { 32, 0 << 16 | 0 },
-    gsSP2Triangles(0, 1, 2, 0, 1, 3, 4, 0),
-    gsSP2Triangles(3, 5, 6, 0, 5, 7, 8, 0),
-    gsSP2Triangles(7, 9, 10, 0, 9, 11, 12, 0),
-    gsSP2Triangles(11, 13, 14, 0, 13, 15, 16, 0),
-    gsSP2Triangles(15, 17, 18, 0, 17, 19, 20, 0),
-    gsSP2Triangles(19, 21, 22, 0, 21, 23, 24, 0),
-    gsSP2Triangles(23, 25, 26, 0, 25, 27, 28, 0),
-    gsSP1Triangle(27, 29, 30, 0),
-    // OTRTODO: Add proper gsSPVertexOTRFilepath macro
-    { G_VTX_OTR_FILEPATH << 24, (uintptr_t)sTransCircleVtx },
-    { 3, 0 << 16 | 31 },
-    gsSP1Triangle(0, 1, 2, 0),
-    gsSPEndDisplayList(),
+    gsSPDisplayList(SEG_ADDR(9, 0)),                                                                                    // 8
+    gsSPVertex(sTransCircleVtx, 32, 0),                                                                              // 9
+    gsSP2Triangles(0, 1, 2, 0, 1, 3, 4, 0),                                                                         // 10
+    gsSP2Triangles(3, 5, 6, 0, 5, 7, 8, 0),                                                                         // 11
+    gsSP2Triangles(7, 9, 10, 0, 9, 11, 12, 0),                                                                      // 12
+    gsSP2Triangles(11, 13, 14, 0, 13, 15, 16, 0),                                                                   // 13
+    gsSP2Triangles(15, 17, 18, 0, 17, 19, 20, 0),                                                                   // 14
+    gsSP2Triangles(19, 21, 22, 0, 21, 23, 24, 0),                                                                   // 15
+    gsSP2Triangles(23, 25, 26, 0, 25, 27, 28, 0),                                                                   // 16
+    gsSP1Triangle(27, 29, 30, 0),                                                                                   // 17
+    gsSPVertex(&sTransCircleVtx[31], 3, 0),                                                                          // 18
+    gsSP1Triangle(0, 1, 2, 0),                                                                                      // 19
+    gsSPEndDisplayList(),                                                                                           // 20
 };
 
 void TransitionCircle_Start(void* thisx) {
     TransitionCircle* this = (TransitionCircle*)thisx;
 
-    this->isDone = false;
+    this->isDone = 0;
 
-    switch (this->appearanceType) {
-        case TCA_WAVE:
+    switch (this->effect) {
+        case 1:
             this->texture = sTransCircleWaveTex;
             break;
-        case TCA_RIPPLE:
+        case 2:
             this->texture = sTransCircleRippleTex;
             break;
-        case TCA_STARBURST:
+        case 3:
             this->texture = sTransCircleStarburstTex;
             break;
         default:
@@ -62,36 +56,35 @@ void TransitionCircle_Start(void* thisx) {
             break;
     }
 
-    if (this->speedType == TCS_FAST) {
-        this->speed = 20;
+    if (this->speed == 0) {
+        this->step = 0x14;
     } else {
-        this->speed = 10;
+        this->step = 0xA;
     }
 
-    if (this->colorType == TCC_BLACK) {
+    if (this->typeColor == 0) {
         this->color.rgba = RGBA8(0, 0, 0, 255);
-    } else if (this->colorType == TCC_WHITE) {
+    } else if (this->typeColor == 1) {
         this->color.rgba = RGBA8(160, 160, 160, 255);
-    } else if (this->colorType == TCC_GRAY) {
+    } else if (this->typeColor == 2) {
         // yes, really.
         this->color.r = 100;
         this->color.g = 100;
         this->color.b = 100;
         this->color.a = 255;
     } else {
-        this->speed = 40;
-        this->color.rgba = this->appearanceType == TCA_WAVE ? RGBA8(0, 0, 0, 255) : RGBA8(160, 160, 160, 255);
+        this->step = 0x28;
+        this->color.rgba = this->effect == 1 ? RGBA8(0, 0, 0, 255) : RGBA8(160, 160, 160, 255);
     }
-    if (this->direction != 0) {
+    if (this->unk_14 != 0) {
         this->texY = 0;
-        if (this->colorType == TCC_SPECIAL) {
+        if (this->typeColor == 3) {
             this->texY = 0xFA;
         }
     } else {
         this->texY = 0x1F4;
-        if (this->appearanceType == TCA_RIPPLE) {
-            Audio_PlaySoundGeneral(NA_SE_OC_SECRET_WARP_OUT, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                   &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+        if (this->effect == 2) {
+            Audio_PlaySoundGeneral(NA_SE_OC_SECRET_WARP_OUT, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
         }
     }
     guPerspective(&this->projection, &this->normal, 60.0f, (4.0f / 3.0f), 10.0f, 12800.0f, 1.0f);
@@ -113,29 +106,28 @@ void TransitionCircle_Update(void* thisx, s32 updateRate) {
     s32 temp_t2;
     s32 temp_t3;
 
-    if (this->direction != 0) {
+    if (this->unk_14 != 0) {
         if (this->texY == 0) {
-            if (this->appearanceType == TCA_RIPPLE) {
-                Audio_PlaySoundGeneral(NA_SE_OC_SECRET_WARP_IN, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                       &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+            if (this->effect == 2) {
+                Audio_PlaySoundGeneral(NA_SE_OC_SECRET_WARP_IN, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
             }
         }
-        this->texY += this->speed * 3 / updateRate;
+        this->texY += this->step * 3 / updateRate;
         if (this->texY >= 0x1F4) {
             this->texY = 0x1F4;
-            this->isDone = true;
+            this->isDone = 1;
         }
     } else {
-        this->texY -= this->speed * 3 / updateRate;
-        if (this->colorType != TCC_SPECIAL) {
+        this->texY -= this->step * 3 / updateRate;
+        if (this->typeColor != 3) {
             if (this->texY <= 0) {
                 this->texY = 0;
-                this->isDone = true;
+                this->isDone = 1;
             }
         } else {
             if (this->texY < 0xFB) {
                 this->texY = 0xFA;
-                this->isDone = true;
+                this->isDone = 1;
             }
         }
     }
@@ -155,7 +147,7 @@ void TransitionCircle_Draw(void* thisx, Gfx** gfxP) {
 
     this->frame ^= 1;
     gDPPipeSync(gfx++);
-    texScroll = Gfx_BranchTexScroll(&gfx, this->texX, this->texY, 16, 64);
+    texScroll = Gfx_BranchTexScroll(&gfx, this->texX, this->texY, 0x10, 0x40);
     gSPSegment(gfx++, 9, texScroll);
     gSPSegment(gfx++, 8, this->texture);
     gDPSetColor(gfx++, G_SETPRIMCOLOR, this->color.rgba);
@@ -180,7 +172,15 @@ void TransitionCircle_Draw(void* thisx, Gfx** gfxP) {
         guTranslate(&modelView[2], tPos, tPos, 0.0f);
         gSPMatrix(gfx++, &modelView[2], G_MTX_NOPUSH | G_MTX_MUL | G_MTX_MODELVIEW);
     }
-    gSPDisplayList(gfx++, sTransCircleDL);
+
+    // OTRTODO: This is an ugly hack but it will do for now...
+    Vtx* vtx = ResourceMgr_LoadVtxByName(sTransCircleVtx);
+    Gfx var1 = gsSPVertex(vtx, 32, 0);
+    Gfx var2 = gsSPVertex(&vtx[31], 3, 0);
+    __sCircleDList[0xe] = var1;
+    __sCircleDList[0x17] = var2;
+
+    gSPDisplayList(gfx++, __sCircleDList);
     gDPPipeSync(gfx++);
     *gfxP = gfx;
 }
@@ -194,17 +194,15 @@ s32 TransitionCircle_IsDone(void* thisx) {
 void TransitionCircle_SetType(void* thisx, s32 type) {
     TransitionCircle* this = (TransitionCircle*)thisx;
 
-    if (type & TC_SET_PARAMS) {
-        // SetType is called twice for circles, the actual direction value will be set on the second call.
-        // The direction set here will be overwritten on that second call.
-        this->direction = (type >> 5) & 0x1;
-        this->colorType = (type >> 3) & 0x3;
-        this->speedType = type & 0x1;
-        this->appearanceType = (type >> 1) & 0x3;
+    if (type & 0x80) {
+        this->unk_14 = (type >> 5) & 0x1;
+        this->typeColor = (type >> 3) & 0x3;
+        this->speed = type & 0x1;
+        this->effect = (type >> 1) & 0x3;
     } else if (type == 1) {
-        this->direction = 1;
+        this->unk_14 = 1;
     } else {
-        this->direction = 0;
+        this->unk_14 = 0;
     }
 }
 

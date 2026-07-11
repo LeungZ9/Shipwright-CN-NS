@@ -3,11 +3,11 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
-#include <ship/resource/Resource.h>
+#include "Resource.h"
 #include "SceneCommand.h"
 #include <libultraship/libultra/types.h>
 
-namespace SOH {
+namespace LUS {
 typedef struct {
 
 } CsCamera;
@@ -21,4 +21,4 @@ class SetCsCamera : public SceneCommand<CsCamera> {
 
     CsCamera csCamera;
 };
-}; // namespace SOH
+}; // namespace LUS

@@ -9,11 +9,12 @@
 void Sram_InitDebugSave(void);
 
 void Opening_SetupTitleScreen(OpeningContext* this) {
-    gSaveContext.gameMode = GAMEMODE_TITLE_SCREEN;
+    gSaveContext.gameMode = 1;
     this->state.running = false;
     gSaveContext.linkAge = 0;
     gSaveContext.fileNum = 0xFF;
-    gWalkSpeedToggle = 0;
+    gWalkSpeedToggle1 = 0;
+    gWalkSpeedToggle2 = 0;
     Sram_InitDebugSave();
     gSaveContext.cutsceneIndex = 0xFFF3;
     gSaveContext.sceneSetupIndex = 7;

@@ -1,9 +1,8 @@
 #include "z_en_du.h"
 #include "objects/object_du/object_du.h"
 #include "scenes/overworld/spot18/spot18_scene.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
-#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_DURING_OCARINA)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_NO_FREEZE_OCARINA)
 
 void EnDu_Init(Actor* thisx, PlayState* play);
 void EnDu_Destroy(Actor* thisx, PlayState* play);
@@ -106,9 +105,9 @@ static AnimationInfo sAnimationInfoFix[] = {
     { NULL },
     { NULL },
     { &gDaruniaDancingLoop1Anim, 0.78f, 0.0f, -1.0f, ANIMMODE_ONCE, -10.0f }, //
-    { &gDaruniaDancingLoop1Anim, 0.77f, 0.0f, -1.0f, ANIMMODE_ONCE, 0.0f },   // hop
-    { &gDaruniaDancingLoop2Anim, 0.78f, 0.0f, -1.0f, ANIMMODE_ONCE, 0.0f },   // from hop to spin
-    { &gDaruniaDancingLoop3Anim, 0.77f, 0.0f, -1.0f, ANIMMODE_ONCE, 0.0f },   // spin
+    { &gDaruniaDancingLoop1Anim, 0.77f, 0.0f, -1.0f, ANIMMODE_ONCE, 0.0f }, // hop
+    { &gDaruniaDancingLoop2Anim, 0.78f, 0.0f, -1.0f, ANIMMODE_ONCE, 0.0f }, // from hop to spin
+    { &gDaruniaDancingLoop3Anim, 0.77f, 0.0f, -1.0f, ANIMMODE_ONCE, 0.0f }, // spin
     { NULL },
     { NULL },
     { &gDaruniaDancingLoop4Anim, 0.78f, 0.0f, -1.0f, ANIMMODE_ONCE, 0.0f }, // from spin to hop
@@ -178,8 +177,7 @@ s16 func_809FDCDC(PlayState* play, Actor* actor) {
 s32 func_809FDDB4(EnDu* this, PlayState* play) {
     if (play->sceneNum == SCENE_GORON_CITY && LINK_IS_CHILD) {
         return 1;
-    } else if (play->sceneNum == SCENE_FIRE_TEMPLE && !Flags_GetInfTable(INFTABLE_SPOKE_TO_DARUNIA_IN_FIRE_TEMPLE) &&
-               LINK_IS_ADULT) {
+    } else if (play->sceneNum == SCENE_FIRE_TEMPLE && !Flags_GetInfTable(INFTABLE_SPOKE_TO_DARUNIA_IN_FIRE_TEMPLE) && LINK_IS_ADULT) {
         return 1;
     }
     return 0;
@@ -255,13 +253,13 @@ void func_809FDE9C(EnDu* this) {
     }
 }
 
-void func_809FDFC0(CsCmdActorCue* csAction, Vec3f* dst) {
+void func_809FDFC0(CsCmdActorAction* csAction, Vec3f* dst) {
     dst->x = csAction->startPos.x;
     dst->y = csAction->startPos.y;
     dst->z = csAction->startPos.z;
 }
 
-void func_809FE000(CsCmdActorCue* csAction, Vec3f* dst) {
+void func_809FE000(CsCmdActorAction* csAction, Vec3f* dst) {
     dst->x = csAction->endPos.x;
     dst->y = csAction->endPos.y;
     dst->z = csAction->endPos.z;
@@ -278,9 +276,9 @@ void func_809FE040(EnDu* this) {
             this->unk_1E6 = 0;
         }
         // #region SOH[Enhancement]
-        if (CVarGetInteger(CVAR_ENHANCEMENT("FixDaruniaDanceSpeed"), 1)) {
+        if (CVarGetInteger("gEnhancements.FixDaruniaDanceSpeed", 1)) {
             Animation_ChangeByInfo(&this->skelAnime, sAnimationInfoFix, animationIndices[this->unk_1E6]);
-            // #endregion
+        // #endregion
         } else {
             Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, animationIndices[this->unk_1E6]);
         }
@@ -300,9 +298,9 @@ void func_809FE104(EnDu* this) {
             this->unk_1E6++;
             if (this->unk_1E6 < 4) {
                 // #region SOH[Enhancement]
-                if (CVarGetInteger(CVAR_ENHANCEMENT("FixDaruniaDanceSpeed"), 1) && this->unk_1E6 <= 1) {
+                if (CVarGetInteger("gEnhancements.FixDaruniaDanceSpeed", 1) && this->unk_1E6 <= 1) {
                     Animation_ChangeByInfo(&this->skelAnime, sAnimationInfoFix, animationIndices[this->unk_1E6]);
-                    // #endregion
+                // #endregion
                 } else {
                     Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, animationIndices[this->unk_1E6]);
                 }
@@ -333,7 +331,7 @@ void EnDu_Init(Actor* thisx, PlayState* play) {
         play->csCtx.segment = SEGMENTED_TO_VIRTUAL(gGoronCityDarunia01Cs);
         gSaveContext.cutsceneTrigger = 1;
         EnDu_SetupAction(this, func_809FE890);
-    } else if (play->sceneNum == SCENE_FIRE_TEMPLE) {
+    } else if (play->sceneNum == 4) {
         EnDu_SetupAction(this, func_809FE638);
     } else if (!LINK_IS_ADULT) {
         EnDu_SetupAction(this, func_809FE3C0);
@@ -355,19 +353,19 @@ void func_809FE3B4(EnDu* this, PlayState* play) {
 void func_809FE3C0(EnDu* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
-    if (player->stateFlags2 & PLAYER_STATE2_ATTEMPT_PLAY_FOR_ACTOR) {
+    if (player->stateFlags2 & 0x1000000) {
         func_8010BD88(play, OCARINA_ACTION_CHECK_SARIA);
-        player->stateFlags2 |= PLAYER_STATE2_PLAY_FOR_ACTOR;
+        player->stateFlags2 |= 0x2000000;
         player->unk_6A8 = &this->actor;
         EnDu_SetupAction(this, func_809FE4A4);
         return;
     }
     if (this->interactInfo.talkState == NPC_TALK_STATE_ACTION) {
-        Player_SetCsActionWithHaltedActors(play, &this->actor, 7);
+        func_8002DF54(play, &this->actor, 7);
         this->interactInfo.talkState = NPC_TALK_STATE_IDLE;
     }
     if (this->actor.xzDistToPlayer < 116.0f + this->collider.dim.radius) {
-        player->stateFlags2 |= PLAYER_STATE2_NEAR_OCARINA_ACTOR;
+        player->stateFlags2 |= 0x800000;
     }
 }
 
@@ -378,7 +376,7 @@ void func_809FE4A4(EnDu* this, PlayState* play) {
         play->msgCtx.ocarinaMode = OCARINA_MODE_00;
         EnDu_SetupAction(this, func_809FE3C0);
     } else if (play->msgCtx.ocarinaMode >= OCARINA_MODE_06) {
-        if (GameInteractor_Should(VB_PLAY_DARUNIAS_JOY_CS, true)) {
+        if (!IS_RANDO) {
             play->csCtx.segment = SEGMENTED_TO_VIRTUAL(gGoronCityDaruniaWrongCs);
             gSaveContext.cutsceneTrigger = 1;
         }
@@ -386,9 +384,8 @@ void func_809FE4A4(EnDu* this, PlayState* play) {
         EnDu_SetupAction(this, func_809FE890);
         play->msgCtx.ocarinaMode = OCARINA_MODE_04;
     } else if (play->msgCtx.ocarinaMode == OCARINA_MODE_03) {
-        Audio_PlaySoundGeneral(NA_SE_SY_CORRECT_CHIME, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
-        if (GameInteractor_Should(VB_PLAY_DARUNIAS_JOY_CS, true)) {
+        Audio_PlaySoundGeneral(NA_SE_SY_CORRECT_CHIME, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+        if (!IS_RANDO) {
             play->csCtx.segment = SEGMENTED_TO_VIRTUAL(gGoronCityDaruniaCorrectCs);
             gSaveContext.cutsceneTrigger = 1;
         }
@@ -396,14 +393,14 @@ void func_809FE4A4(EnDu* this, PlayState* play) {
         EnDu_SetupAction(this, func_809FE890);
         play->msgCtx.ocarinaMode = OCARINA_MODE_04;
     } else {
-        player->stateFlags2 |= PLAYER_STATE2_NEAR_OCARINA_ACTOR;
+        player->stateFlags2 |= 0x800000;
     }
 }
 
 void func_809FE638(EnDu* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
-    if (!(player->stateFlags1 & PLAYER_STATE1_IN_CUTSCENE)) {
+    if (!(player->stateFlags1 & 0x20000000)) {
         OnePointCutscene_Init(play, 3330, -99, &this->actor, MAIN_CAM);
         player->actor.shape.rot.y = player->actor.world.rot.y = this->actor.world.rot.y + 0x7FFF;
         Audio_PlayFanfare(NA_BGM_APPEAR);
@@ -475,10 +472,13 @@ void func_809FE890(EnDu* this, PlayState* play) {
     Vec3f startPos;
     Vec3f endPos;
     Vec3f velocity = { 0.0f, 0.0f, 0.0f };
-    CsCmdActorCue* csAction;
+    CsCmdActorAction* csAction;
 
-    if (play->csCtx.state == CS_STATE_IDLE) {
-        Player_SetCsActionWithHaltedActors(play, &this->actor, 1);
+    if (play->csCtx.state == CS_STATE_IDLE || IS_RANDO) {
+        if (IS_RANDO) {
+            play->csCtx.state = CS_STATE_IDLE;
+        }
+        func_8002DF54(play, &this->actor, 1);
         EnDu_SetupAction(this, func_809FEB08);
         return;
     }
@@ -498,9 +498,9 @@ void func_809FE890(EnDu* this, PlayState* play) {
             if (csAction->action == 7 || csAction->action == 8) {
                 this->unk_1E6 = 0;
                 // #region SOH[Enhancement]
-                if (CVarGetInteger(CVAR_ENHANCEMENT("FixDaruniaDanceSpeed"), 1)) {
+                if (CVarGetInteger("gEnhancements.FixDaruniaDanceSpeed", 1)) {
                     Animation_ChangeByInfo(&this->skelAnime, sAnimationInfoFix, ENDU_ANIM_7);
-                    // #endregion
+                // #endregion
                 } else {
                     Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ENDU_ANIM_7);
                 }
@@ -551,13 +551,16 @@ void func_809FEB08(EnDu* this, PlayState* play) {
     this->unk_1EE = 0;
 
     if (this->unk_1E8 == 1) {
-        Player_SetCsActionWithHaltedActors(play, &this->actor, 7);
+        func_8002DF54(play, &this->actor, 7);
         Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ENDU_ANIM_1);
         EnDu_SetupAction(this, func_809FE3C0);
         return;
     }
-    if (GameInteractor_Should(VB_BE_ELIGIBLE_FOR_DARUNIAS_JOY_REWARD, CUR_UPG_VALUE(UPG_STRENGTH) <= 0)) {
-        Flags_SetRandomizerInf(RAND_INF_DARUNIAS_JOY);
+    if ((!IS_RANDO && CUR_UPG_VALUE(UPG_STRENGTH) <= 0) ||
+         (IS_RANDO && !Flags_GetTreasure(play, 0x1E))) {
+        if (IS_RANDO) {
+            Flags_SetTreasure(play, 0x1E);
+        }
         this->actor.textId = 0x301C;
         EnDu_SetupAction(this, func_809FEC14);
     } else {
@@ -571,20 +574,24 @@ void func_809FEB08(EnDu* this, PlayState* play) {
 
 void func_809FEC14(EnDu* this, PlayState* play) {
     if (this->interactInfo.talkState == NPC_TALK_STATE_ACTION) {
-        Player_SetCsActionWithHaltedActors(play, &this->actor, 7);
+        func_8002DF54(play, &this->actor, 7);
         EnDu_SetupAction(this, func_809FEC70);
         func_809FEC70(this, play);
     }
 }
 
 void func_809FEC70(EnDu* this, PlayState* play) {
-    if (Actor_HasParent(&this->actor, play) || !GameInteractor_Should(VB_GIVE_ITEM_STRENGTH_1, true)) {
+    if (Actor_HasParent(&this->actor, play)) {
         this->actor.parent = NULL;
         EnDu_SetupAction(this, func_809FECE4);
     } else {
         f32 xzRange = this->actor.xzDistToPlayer + 1.0f;
-
-        Actor_OfferGetItem(&this->actor, play, GI_BRACELET, xzRange, fabsf(this->actor.yDistToPlayer) + 1.0f);
+        if (!IS_RANDO) {
+            func_8002F434(&this->actor, play, GI_BRACELET, xzRange, fabsf(this->actor.yDistToPlayer) + 1.0f);
+        } else {
+            GetItemEntry getItemEntry = Randomizer_GetItemFromKnownCheck(RC_GC_DARUNIAS_JOY, GI_BRACELET);
+            GiveItemEntryFromActor(&this->actor, play, getItemEntry, xzRange, fabsf(this->actor.yDistToPlayer) + 1.0f);
+        }
     }
 }
 
@@ -616,7 +623,7 @@ void EnDu_Update(Actor* thisx, PlayState* play) {
         this->actor.world.pos.y += this->actor.velocity.y;
         this->actor.world.pos.z += this->actor.velocity.z;
     } else {
-        Actor_UpdatePos(&this->actor);
+        func_8002D7EC(&this->actor);
     }
 
     Actor_UpdateBgCheckInfo(play, &this->actor, 0.0f, 0.0f, 0.0f, 4);
@@ -628,7 +635,8 @@ void EnDu_Update(Actor* thisx, PlayState* play) {
     this->actionFunc(this, play);
 }
 
-s32 EnDu_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot, void* thisx, Gfx** gfx) {
+s32 EnDu_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot, void* thisx,
+                          Gfx** gfx) {
     EnDu* this = (EnDu*)thisx;
     Vec3s sp1C;
 

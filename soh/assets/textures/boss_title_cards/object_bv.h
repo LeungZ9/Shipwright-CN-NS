@@ -12,9 +12,6 @@ static const ALIGN_ASSET(2) char gBarinadeTitleCardGERTex[] = dgBarinadeTitleCar
 #define dgBarinadeTitleCardFRATex "__OTR__textures/object_bv/gBarinadeTitleCardFRATex"
 static const ALIGN_ASSET(2) char gBarinadeTitleCardFRATex[] = dgBarinadeTitleCardFRATex;
 
-#define dgBarinadeTitleCardJPNTex "__OTR__textures/object_bv/gBarinadeTitleCardJPNTex"
-static const ALIGN_ASSET(2) char gBarinadeTitleCardJPNTex[] = dgBarinadeTitleCardJPNTex;
-
 
 // #region SOH [Chinese]
 #define dgBarinadeTitleCardCHITex "__OTR__textures/object_bv/gBarinadeTitleCardCHITex"

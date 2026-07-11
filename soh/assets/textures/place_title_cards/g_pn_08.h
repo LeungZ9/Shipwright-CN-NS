@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gDodongosCavernTitleCardGERTex[] = dgDodongosCa
 static const ALIGN_ASSET(2) char gDodongosCavernTitleCardFRATex[] = dgDodongosCavernTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgDodongosCavernTitleCardCHITex "__OTR__textures/g_pn_08/gDodongosCavernTitleCardCHITex"
 static const ALIGN_ASSET(2) char gDodongosCavernTitleCardCHITex[] = dgDodongosCavernTitleCardCHITex;

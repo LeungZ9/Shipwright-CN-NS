@@ -11,6 +11,7 @@ extern u8 gEquipAgeReqs[][4];
 extern u8 gSlotAgeReqs[];
 extern u8 gItemAgeReqs[];
 extern u8 gAreaGsFlags[];
+extern bool gSelectingMask;
 
 #define MAP_48x85_TEX_WIDTH 48
 #define MAP_48x85_TEX_HEIGHT 85
@@ -20,9 +21,9 @@ extern u8 gAreaGsFlags[];
 #define AGE_REQ_CHILD LINK_AGE_CHILD
 #define AGE_REQ_NONE 9
 
-#define CHECK_AGE_REQ_EQUIP(i, j) (CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0) || (gEquipAgeReqs[i][j] == AGE_REQ_NONE) || (gEquipAgeReqs[i][j] == ((void)0, gSaveContext.linkAge)))
-#define CHECK_AGE_REQ_SLOT(slotIndex) (CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0) || (gSlotAgeReqs[slotIndex] == AGE_REQ_NONE) || gSlotAgeReqs[slotIndex] == ((void)0, gSaveContext.linkAge))
-#define CHECK_AGE_REQ_ITEM(itemIndex) (CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0) || (gItemAgeReqs[itemIndex] == AGE_REQ_NONE) || (gItemAgeReqs[itemIndex] == gSaveContext.linkAge))
+#define CHECK_AGE_REQ_EQUIP(i, j) (CVarGetInteger("gTimelessEquipment", 0) || (gEquipAgeReqs[i][j] == AGE_REQ_NONE) || (gEquipAgeReqs[i][j] == ((void)0, gSaveContext.linkAge)))
+#define CHECK_AGE_REQ_SLOT(slotIndex) (CVarGetInteger("gTimelessEquipment", 0) || (gSlotAgeReqs[slotIndex] == AGE_REQ_NONE) || gSlotAgeReqs[slotIndex] == ((void)0, gSaveContext.linkAge))
+#define CHECK_AGE_REQ_ITEM(itemIndex) (CVarGetInteger("gTimelessEquipment", 0) || (gItemAgeReqs[itemIndex] == AGE_REQ_NONE) || (gItemAgeReqs[itemIndex] == gSaveContext.linkAge))
 
 void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx);
 s32 KaleidoScope_UpdateQuestStatusPoint(PauseContext* pauseCtx, s32 point);
@@ -49,6 +50,6 @@ void PauseMapMark_Draw(PlayState* play);
 
 void KaleidoScope_UpdateCursorSize(PauseContext* pauseCtx);
 
-void KaleidoScope_ResetItemCycling();
+void KaleidoScope_ResetTradeSelect();
 
 #endif

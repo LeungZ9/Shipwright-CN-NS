@@ -7,9 +7,8 @@
 #include "z_obj_switch.h"
 #include "objects/gameplay_dangeon_keep/gameplay_dangeon_keep.h"
 #include "vt.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
-#define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
+#define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
 // type:        (this->dyna.actor.params & 7)
 // subtype:     (this->dyna.actor.params >> 4 & 7)
@@ -235,9 +234,9 @@ void ObjSwitch_InitTrisCollider(ObjSwitch* this, PlayState* play, ColliderTrisIn
 Actor* ObjSwitch_SpawnIce(ObjSwitch* this, PlayState* play) {
     Actor* thisx = &this->dyna.actor;
 
-    return Actor_SpawnAsChild(&play->actorCtx, thisx, play, ACTOR_OBJ_ICE_POLY, thisx->world.pos.x, thisx->world.pos.y,
-                              thisx->world.pos.z, thisx->world.rot.x, thisx->world.rot.y, thisx->world.rot.z,
-                              (this->dyna.actor.params >> 8 & 0x3F) << 8);
+    return Actor_SpawnAsChild(&play->actorCtx, thisx, play, ACTOR_OBJ_ICE_POLY, thisx->world.pos.x,
+                              thisx->world.pos.y, thisx->world.pos.z, thisx->world.rot.x, thisx->world.rot.y,
+                              thisx->world.rot.z, (this->dyna.actor.params >> 8 & 0x3F) << 8);
 }
 
 void ObjSwitch_SetOn(ObjSwitch* this, PlayState* play) {
@@ -250,14 +249,13 @@ void ObjSwitch_SetOn(ObjSwitch* this, PlayState* play) {
         subType = (this->dyna.actor.params >> 4 & 7);
         Flags_SetSwitch(play, (this->dyna.actor.params >> 8 & 0x3F));
 
-        if (GameInteractor_Should(VB_PLAY_ONEPOINT_ACTOR_CS, true, this)) {
-            if (subType == 0 || subType == 4) {
-                OnePointCutscene_AttentionSetSfx(play, &this->dyna.actor, NA_SE_SY_CORRECT_CHIME);
-            } else {
-                OnePointCutscene_AttentionSetSfx(play, &this->dyna.actor, NA_SE_SY_TRE_BOX_APPEAR);
-            }
-            this->cooldownOn = true;
+        if (subType == 0 || subType == 4) {
+            OnePointCutscene_AttentionSetSfx(play, &this->dyna.actor, NA_SE_SY_CORRECT_CHIME);
+        } else {
+            OnePointCutscene_AttentionSetSfx(play, &this->dyna.actor, NA_SE_SY_TRE_BOX_APPEAR);
         }
+
+        this->cooldownOn = true;
     }
 }
 
@@ -268,10 +266,8 @@ void ObjSwitch_SetOff(ObjSwitch* this, PlayState* play) {
         Flags_UnsetSwitch(play, (this->dyna.actor.params >> 8 & 0x3F));
 
         if ((this->dyna.actor.params >> 4 & 7) == 1) {
-            if (GameInteractor_Should(VB_PLAY_ONEPOINT_ACTOR_CS, true, this)) {
-                OnePointCutscene_AttentionSetSfx(play, &this->dyna.actor, NA_SE_SY_TRE_BOX_APPEAR);
-                this->cooldownOn = true;
-            }
+            OnePointCutscene_AttentionSetSfx(play, &this->dyna.actor, NA_SE_SY_TRE_BOX_APPEAR);
+            this->cooldownOn = true;
         }
     }
 }
@@ -312,7 +308,7 @@ void ObjSwitch_Init(Actor* thisx, PlayState* play) {
     }
 
     if (type == OBJSWITCH_TYPE_CRYSTAL_TARGETABLE) {
-        this->dyna.actor.flags |= ACTOR_FLAG_ATTENTION_ENABLED;
+        this->dyna.actor.flags |= ACTOR_FLAG_TARGETABLE;
         this->dyna.actor.targetMode = 4;
     }
 
@@ -389,26 +385,25 @@ void ObjSwitch_FloorUp(ObjSwitch* this, PlayState* play) {
     } else {
         switch ((this->dyna.actor.params >> 4 & 7)) {
             case OBJSWITCH_SUBTYPE_FLOOR_0:
-                if (DynaPolyActor_IsPlayerOnTop(&this->dyna)) {
+                if (func_8004356C(&this->dyna)) {
                     ObjSwitch_FloorPressInit(this);
                     ObjSwitch_SetOn(this, play);
                 }
                 break;
             case OBJSWITCH_SUBTYPE_FLOOR_1:
-                if ((this->dyna.interactFlags & DYNA_INTERACT_PLAYER_ON_TOP) &&
-                    !(this->unk_17F & DYNA_INTERACT_PLAYER_ON_TOP)) {
+                if ((this->dyna.unk_160 & 2) && !(this->unk_17F & 2)) {
                     ObjSwitch_FloorPressInit(this);
                     ObjSwitch_SetOn(this, play);
                 }
                 break;
             case OBJSWITCH_SUBTYPE_FLOOR_2:
-                if (DynaPolyActor_IsSwitchPressed(&this->dyna)) {
+                if (func_800435B4(&this->dyna)) {
                     ObjSwitch_FloorPressInit(this);
                     ObjSwitch_SetOn(this, play);
                 }
                 break;
             case OBJSWITCH_SUBTYPE_FLOOR_3:
-                if (DynaPolyActor_IsSwitchPressed(&this->dyna)) {
+                if (func_800435B4(&this->dyna)) {
                     ObjSwitch_FloorPressInit(this);
                     ObjSwitch_SetOff(this, play);
                 }
@@ -448,15 +443,14 @@ void ObjSwitch_FloorDown(ObjSwitch* this, PlayState* play) {
             }
             break;
         case OBJSWITCH_SUBTYPE_FLOOR_1:
-            if ((this->dyna.interactFlags & DYNA_INTERACT_PLAYER_ON_TOP) &&
-                !(this->unk_17F & DYNA_INTERACT_PLAYER_ON_TOP)) {
+            if ((this->dyna.unk_160 & 2) && !(this->unk_17F & 2)) {
                 ObjSwitch_FloorReleaseInit(this);
                 ObjSwitch_SetOff(this, play);
             }
             break;
         case OBJSWITCH_SUBTYPE_FLOOR_2:
         case OBJSWITCH_SUBTYPE_FLOOR_3:
-            if (!DynaPolyActor_IsSwitchPressed(&this->dyna) && !Player_InCsMode(play)) {
+            if (!func_800435B4(&this->dyna) && !Player_InCsMode(play)) {
                 if (this->releaseTimer <= 0) {
                     ObjSwitch_FloorReleaseInit(this);
                     if ((this->dyna.actor.params >> 4 & 7) == OBJSWITCH_SUBTYPE_FLOOR_2) {
@@ -696,7 +690,7 @@ void ObjSwitch_Update(Actor* thisx, PlayState* play) {
     switch ((this->dyna.actor.params & 7)) {
         case OBJSWITCH_TYPE_FLOOR:
         case OBJSWITCH_TYPE_FLOOR_RUSTY:
-            this->unk_17F = this->dyna.interactFlags;
+            this->unk_17F = this->dyna.unk_160;
             break;
         case OBJSWITCH_TYPE_EYE:
             this->unk_17F = this->tris.col.base.acFlags;
@@ -740,7 +734,8 @@ void ObjSwitch_DrawEye(ObjSwitch* this, PlayState* play) {
     OPEN_DISPS(play->state.gfxCtx);
 
     Gfx_SetupDL_25Opa(play->state.gfxCtx);
-    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
     gSPSegment(POLY_OPA_DISP++, 0x08, SEGMENTED_TO_VIRTUAL(eyeTextures[subType][this->eyeTexIndex]));
     gSPDisplayList(POLY_OPA_DISP++, eyeDlists[subType]);
 
@@ -762,7 +757,8 @@ void ObjSwitch_DrawCrystal(ObjSwitch* this, PlayState* play) {
     OPEN_DISPS(play->state.gfxCtx);
 
     Gfx_SetupDL_25Xlu(play->state.gfxCtx);
-    gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
     gSPDisplayList(POLY_XLU_DISP++, xluDLists[subType]);
 
     CLOSE_DISPS(play->state.gfxCtx);
@@ -770,7 +766,8 @@ void ObjSwitch_DrawCrystal(ObjSwitch* this, PlayState* play) {
     OPEN_DISPS(play->state.gfxCtx);
 
     Gfx_SetupDL_25Opa(play->state.gfxCtx);
-    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
     if (subType == OBJSWITCH_SUBTYPE_CRYSTAL_1) {
         gSPSegment(POLY_OPA_DISP++, 0x09, SEGMENTED_TO_VIRTUAL(this->crystalSubtype1texture));
@@ -778,8 +775,8 @@ void ObjSwitch_DrawCrystal(ObjSwitch* this, PlayState* play) {
 
     gDPSetEnvColor(POLY_OPA_DISP++, this->crystalColor.r, this->crystalColor.g, this->crystalColor.b, 128);
     gSPSegment(POLY_OPA_DISP++, 0x08,
-               Gfx_TwoTexScrollEx(play->state.gfxCtx, 0, this->x1TexScroll, this->y1TexScroll, 0x20, 0x20, 1,
-                                  this->x2TexScroll, this->y2TexScroll, 0x20, 0x20, -1, 1, 1, -1));
+               Gfx_TwoTexScroll(play->state.gfxCtx, 0, this->x1TexScroll, this->y1TexScroll, 0x20, 0x20, 1,
+                                this->x2TexScroll, this->y2TexScroll, 0x20, 0x20));
     gSPDisplayList(POLY_OPA_DISP++, opaDLists[subType]);
 
     CLOSE_DISPS(play->state.gfxCtx);

@@ -7,9 +7,8 @@
 #include "z_en_floormas.h"
 #include "objects/object_wallmaster/object_wallmaster.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
-#include "soh/ResourceManagerHelpers.h"
 
-#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOSTILE | ACTOR_FLAG_HOOKSHOT_PULLS_PLAYER)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_HOSTILE | ACTOR_FLAG_DRAGGED_BY_HOOKSHOT)
 
 #define SPAWN_INVISIBLE 0x8000
 #define SPAWN_SMALL 0x10
@@ -141,27 +140,27 @@ void EnFloormas_Init(Actor* thisx, PlayState* play2) {
     // s16 cast needed
     this->actor.params &= (s16) ~(SPAWN_INVISIBLE);
     if (invisble) {
-        this->actor.flags |= ACTOR_FLAG_REACT_TO_LENS;
+        this->actor.flags |= ACTOR_FLAG_LENS;
         this->actor.draw = EnFloormas_DrawHighlighted;
     }
 
     if (this->actor.params == SPAWN_SMALL) {
         this->actor.draw = NULL;
-        this->actor.flags &= ~ACTOR_FLAG_ATTENTION_ENABLED;
+        this->actor.flags &= ~ACTOR_FLAG_TARGETABLE;
         this->actionFunc = EnFloormas_SmWait;
     } else {
         // spawn first small floormaster
         this->actor.parent =
-            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_FLOORMAS, this->actor.world.pos.x, this->actor.world.pos.y,
-                        this->actor.world.pos.z, 0, 0, 0, invisble + SPAWN_SMALL);
+            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_FLOORMAS, this->actor.world.pos.x,
+                        this->actor.world.pos.y, this->actor.world.pos.z, 0, 0, 0, invisble + SPAWN_SMALL, true);
         if (this->actor.parent == NULL) {
             Actor_Kill(&this->actor);
             return;
         }
         // spawn 2nd small floormaster
         this->actor.child =
-            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_FLOORMAS, this->actor.world.pos.x, this->actor.world.pos.y,
-                        this->actor.world.pos.z, 0, 0, 0, invisble + SPAWN_SMALL);
+            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_FLOORMAS, this->actor.world.pos.x,
+                        this->actor.world.pos.y, this->actor.world.pos.z, 0, 0, 0, invisble + SPAWN_SMALL, true);
         if (this->actor.child == NULL) {
             Actor_Kill(this->actor.parent);
             Actor_Kill(&this->actor);
@@ -285,8 +284,8 @@ void EnFloormas_SetupLand(EnFloormas* this) {
 void EnFloormas_SetupSplit(EnFloormas* this) {
 
     Actor_SetScale(&this->actor, 0.004f);
-    this->actor.flags |= ACTOR_FLAG_UPDATE_CULLING_DISABLED;
-    if (CHECK_FLAG_ALL(this->actor.flags, ACTOR_FLAG_REACT_TO_LENS)) {
+    this->actor.flags |= ACTOR_FLAG_UPDATE_WHILE_CULLED;
+    if (CHECK_FLAG_ALL(this->actor.flags, ACTOR_FLAG_LENS)) {
         this->actor.draw = EnFloormas_DrawHighlighted;
     } else {
         this->actor.draw = EnFloormas_Draw;
@@ -351,7 +350,7 @@ void EnFloormas_SetupGrabLink(EnFloormas* this, Player* player) {
     f32 xzDelta;
 
     Animation_Change(&this->skelAnime, &gWallmasterJumpAnim, 1.0f, 36.0f, 45.0f, ANIMMODE_ONCE, -3.0f);
-    this->actor.flags &= ~ACTOR_FLAG_ATTENTION_ENABLED;
+    this->actor.flags &= ~ACTOR_FLAG_TARGETABLE;
     this->actor.speedXZ = 0.0f;
     this->actor.velocity.y = 0.0f;
     EnFloormas_MakeInvulnerable(this);
@@ -390,7 +389,7 @@ void EnFloormas_SetupSmWait(EnFloormas* this) {
     }
     this->actor.draw = NULL;
     this->actionFunc = EnFloormas_SmWait;
-    this->actor.flags &= ~(ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_UPDATE_CULLING_DISABLED);
+    this->actor.flags &= ~(ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_UPDATE_WHILE_CULLED);
 }
 
 void EnFloormas_SetupTakeDamage(EnFloormas* this) {
@@ -431,7 +430,7 @@ void EnFloormas_SetupFreeze(EnFloormas* this) {
 }
 
 void EnFloormas_Die(EnFloormas* this, PlayState* play) {
-    // Originally was doing > 0.004f, better fix thanks Gary :D
+    //Originally was doing > 0.004f, better fix thanks Gary :D
     if (this->actor.scale.x > (f32)0.004f) {
         // split
         this->actor.shape.rot.y = this->actor.yawTowardsPlayer + 0x8000;
@@ -670,7 +669,7 @@ void EnFloormas_Land(EnFloormas* this, PlayState* play) {
 void EnFloormas_Split(EnFloormas* this, PlayState* play) {
     if (this->actor.bgCheckFlags & 1) {
         if (SkelAnime_Update(&this->skelAnime)) {
-            this->actor.flags |= ACTOR_FLAG_ATTENTION_ENABLED;
+            this->actor.flags |= ACTOR_FLAG_TARGETABLE;
             this->smActionTimer = 50;
             EnFloormas_SetupStand(this);
         }
@@ -798,7 +797,7 @@ void EnFloormas_GrabLink(EnFloormas* this, PlayState* play) {
     this->actor.world.pos.z = Math_CosS(this->actor.shape.rot.y) * (xzDelta * 0.1f) + player->actor.world.pos.z;
 
     // let go
-    if (!(player->stateFlags2 & PLAYER_STATE2_GRABBED_BY_ENEMY) || (player->invincibilityTimer < 0)) {
+    if (!(player->stateFlags2 & 0x80) || (player->invincibilityTimer < 0)) {
         parent = (EnFloormas*)this->actor.parent;
         child = (EnFloormas*)this->actor.child;
 
@@ -812,7 +811,7 @@ void EnFloormas_GrabLink(EnFloormas* this, PlayState* play) {
 
         this->actor.shape.rot.x = 0;
         this->actor.velocity.y = 6.0f;
-        this->actor.flags |= ACTOR_FLAG_ATTENTION_ENABLED;
+        this->actor.flags |= ACTOR_FLAG_TARGETABLE;
         this->actor.speedXZ = -3.0f;
         EnFloormas_SetupLand(this);
     } else {
@@ -919,7 +918,7 @@ void EnFloormas_Merge(EnFloormas* this, PlayState* play) {
 
     if (SkelAnime_Update(&this->skelAnime) != 0) {
         if (this->actor.scale.x >= 0.01f) {
-            this->actor.flags &= ~ACTOR_FLAG_UPDATE_CULLING_DISABLED;
+            this->actor.flags &= ~ACTOR_FLAG_UPDATE_WHILE_CULLED;
             EnFloormas_MakeVulnerable(this);
             this->actor.params = 0;
             this->collider.info.bumperFlags |= BUMP_HOOKABLE;
@@ -1004,7 +1003,7 @@ void EnFloormas_ColliderCheck(EnFloormas* this, PlayState* play) {
                         Audio_PlayActorSound2(&this->actor, NA_SE_EN_FALL_DEAD);
                     }
                     Enemy_StartFinishingBlow(play, &this->actor);
-                    this->actor.flags &= ~ACTOR_FLAG_ATTENTION_ENABLED;
+                    this->actor.flags &= ~ACTOR_FLAG_TARGETABLE;
                 } else if (this->actor.colChkInfo.damage != 0) {
                     Audio_PlayActorSound2(&this->actor, NA_SE_EN_FALL_DAMAGE);
                 }
@@ -1015,8 +1014,8 @@ void EnFloormas_ColliderCheck(EnFloormas* this, PlayState* play) {
                     }
                 } else {
                     if (this->actor.colChkInfo.damageEffect == 2) {
-                        EffectSsFCircle_Spawn(play, &this->actor, &this->actor.world.pos, this->actor.scale.x * 4000.0f,
-                                              this->actor.scale.x * 4000.0f);
+                        EffectSsFCircle_Spawn(play, &this->actor, &this->actor.world.pos,
+                                              this->actor.scale.x * 4000.0f, this->actor.scale.x * 4000.0f);
                     }
                     EnFloormas_SetupTakeDamage(this);
                 }
@@ -1052,13 +1051,13 @@ void EnFloormas_Update(Actor* thisx, PlayState* play) {
         }
 
         if (this->actionFunc != EnFloormas_GrabLink) {
-            Actor_MoveXZGravity(&this->actor);
+            Actor_MoveForward(&this->actor);
         }
 
         Actor_UpdateBgCheckInfo(play, &this->actor, 20.0f, this->actor.scale.x * 3000.0f, 0.0f, 0x1D);
         Collider_UpdateCylinder(&this->actor, &this->collider);
         if (this->actionFunc == EnFloormas_Charge) {
-            this->actor.flags |= ACTOR_FLAG_SFX_FOR_PLAYER_BODY_HIT;
+            this->actor.flags |= ACTOR_FLAG_PLAY_HIT_SFX;
             CollisionCheck_SetAT(play, &play->colChkCtx, &this->collider.base);
         }
         if (this->actionFunc != EnFloormas_GrabLink) {
@@ -1086,8 +1085,8 @@ void EnFloormas_Update(Actor* thisx, PlayState* play) {
     }
 }
 
-s32 EnFloormas_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot, void* thisx,
-                                Gfx** gfx) {
+s32 EnFloormas_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot,
+                                void* thisx, Gfx** gfx) {
     EnFloormas* this = (EnFloormas*)thisx;
 
     if (limbIndex == 1) {

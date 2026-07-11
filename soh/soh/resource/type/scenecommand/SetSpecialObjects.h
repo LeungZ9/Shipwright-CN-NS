@@ -3,14 +3,14 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
-#include <ship/resource/Resource.h>
+#include "Resource.h"
 #include "SceneCommand.h"
 #include <libultraship/libultra/types.h>
 
-namespace SOH {
+namespace LUS {
 typedef struct {
-    int8_t elfMessage;
-    int16_t globalObject;
+  int8_t elfMessage;
+  int16_t globalObject;
 } SpecialObjects;
 
 class SetSpecialObjects : public SceneCommand<SpecialObjects> {
@@ -22,4 +22,4 @@ class SetSpecialObjects : public SceneCommand<SpecialObjects> {
 
     SpecialObjects specialObjects;
 };
-}; // namespace SOH
+}; // namespace LUS

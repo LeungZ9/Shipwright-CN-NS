@@ -8,7 +8,7 @@
 #include "objects/object_spot01_objects/object_spot01_objects.h"
 #include "vt.h"
 
-#define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
+#define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
 void BgSpot01Idohashira_Init(Actor* thisx, PlayState* play);
 void BgSpot01Idohashira_Destroy(Actor* thisx, PlayState* play);
@@ -50,7 +50,7 @@ const ActorInit Bg_Spot01_Idohashira_InitVars = {
 };
 
 void BgSpot01Idohashira_PlayBreakSfx1(BgSpot01Idohashira* this) {
-    Sfx_PlaySfxAtPos(&this->dyna.actor.projectedPos, NA_SE_EV_BOX_BREAK);
+    func_80078914(&this->dyna.actor.projectedPos, NA_SE_EV_BOX_BREAK);
 }
 
 void BgSpot01Idohashira_PlayBreakSfx2(BgSpot01Idohashira* this, PlayState* play) {
@@ -152,9 +152,9 @@ s32 BgSpot01Idohashira_NotInCsMode(PlayState* play) {
     return false;
 }
 
-CsCmdActorCue* BgSpot01Idohashira_GetNpcAction(PlayState* play, s32 actionIdx) {
+CsCmdActorAction* BgSpot01Idohashira_GetNpcAction(PlayState* play, s32 actionIdx) {
     s32 pad[2];
-    CsCmdActorCue* npcAction = NULL;
+    CsCmdActorAction* npcAction = NULL;
 
     if (!BgSpot01Idohashira_NotInCsMode(play)) {
         npcAction = play->csCtx.npcActions[actionIdx];
@@ -186,7 +186,7 @@ f32 func_808AB1DC(f32 arg0, f32 arg1, u16 arg2, u16 arg3, u16 arg4) {
 }
 
 s32 func_808AB29C(BgSpot01Idohashira* this, PlayState* play) {
-    CsCmdActorCue* npcAction;
+    CsCmdActorAction* npcAction;
     Vec3f* thisPos;
     f32 endX;
     f32 temp_f0;
@@ -206,7 +206,8 @@ s32 func_808AB29C(BgSpot01Idohashira* this, PlayState* play) {
         thisPos = &this->dyna.actor.world.pos;
         thisPos->x = ((endX - initPos.x) * temp_f0) + initPos.x;
         thisPos->y =
-            func_808AB1DC(initPos.y, tempY, npcAction->endFrame, npcAction->startFrame, play->csCtx.frames) + initPos.y;
+            func_808AB1DC(initPos.y, tempY, npcAction->endFrame, npcAction->startFrame, play->csCtx.frames) +
+            initPos.y;
         thisPos->z = ((endZ - initPos.z) * temp_f0) + initPos.z;
 
         if (temp_f0 >= 1.0f) {
@@ -236,7 +237,7 @@ void func_808AB414(BgSpot01Idohashira* this, PlayState* play) {
 }
 
 void func_808AB444(BgSpot01Idohashira* this, PlayState* play) {
-    CsCmdActorCue* npcAction = BgSpot01Idohashira_GetNpcAction(play, 2);
+    CsCmdActorAction* npcAction = BgSpot01Idohashira_GetNpcAction(play, 2);
     u32 action;
     u32 currentNpcAction;
 
@@ -324,7 +325,8 @@ void func_808AB700(BgSpot01Idohashira* this, PlayState* play) {
 
     Gfx_SetupDL_25Opa(localGfxCtx);
 
-    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(localGfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(localGfxCtx),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
     func_808AAF34(this, play);
     gSPDisplayList(POLY_OPA_DISP++, gKakarikoWellArchDL);
 

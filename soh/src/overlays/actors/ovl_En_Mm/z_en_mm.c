@@ -7,9 +7,8 @@
 #include "z_en_mm.h"
 #include "objects/object_mm/object_mm.h"
 #include "objects/object_link_child/object_link_child.h"
-#include "soh/ResourceManagerHelpers.h"
 
-#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_WHILE_CULLED)
 
 typedef enum {
     /* 0 */ RM_ANIM_RUN,
@@ -298,7 +297,7 @@ void func_80AADCD0(EnMm* this, PlayState* play) {
             if (this->curAnimIndex != 5) {
                 if ((this->actor.textId == 0x202A) || (this->actor.textId == 0x202B)) {
                     EnMm_ChangeAnim(this, RM_ANIM_EXCITED, &this->curAnimIndex);
-                    Sfx_PlaySfxCentered(NA_SE_SY_TRE_BOX_APPEAR);
+                    func_80078884(NA_SE_SY_TRE_BOX_APPEAR);
                 }
             }
         } else {
@@ -392,7 +391,7 @@ s32 func_80AADEF0(EnMm* this, PlayState* play) {
     Math_SmoothStepToS(&this->actor.shape.rot.y, this->yawToWaypoint, 1, 2500, 0);
     this->actor.world.rot.y = this->actor.shape.rot.y;
     Math_SmoothStepToF(&this->actor.speedXZ, this->speedXZ, 0.6f, this->distToWaypoint, 0.0f);
-    Actor_MoveXZGravity(&this->actor);
+    Actor_MoveForward(&this->actor);
     Actor_UpdateBgCheckInfo(play, &this->actor, 0.0f, 0.0f, 0.0f, 4);
 
     return 0;
@@ -463,7 +462,7 @@ void func_80AAE294(EnMm* this, PlayState* play) {
             dustPos.y = this->actor.world.pos.y;
             dustPos.z = this->actor.world.pos.z;
 
-            if (gSaveContext.gameMode != GAMEMODE_END_CREDITS) {
+            if (gSaveContext.gameMode != 3) {
                 func_80033480(play, &dustPos, 50.0f, 2, 350, 20, 0);
             }
 

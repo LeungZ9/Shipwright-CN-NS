@@ -3,133 +3,61 @@
 
 #include <string.h>
 
-// SOH [General] This file corresponds to decomp's "__osMalloc_gc.c", there's currently no file corresponding to
-// decomp's "__osMalloc_n64.c"
+#define FILL_ALLOCBLOCK (1 << 0)
+#define FILL_FREEBLOCK (1 << 1)
+#define CHECK_FREE_BLOCK (1 << 2)
 
-// #region SOH [General] We currently don't set OOT_DEBUG when building so set it here manually
-#define OOT_DEBUG 1
-// #endregion
+#define NODE_MAGIC (0x7373)
 
-// #region SOH [General] We renamed OoT's memmove to prevent conflicts with the libc version
-#define memmove oot_memmove
-// #endregion
-
-#define FILL_ALLOC_BLOCK_FLAG (1 << 0)
-#define FILL_FREE_BLOCK_FLAG (1 << 1)
-#define CHECK_FREE_BLOCK_FLAG (1 << 2)
-
-#define NODE_MAGIC 0x7373
-
-#define BLOCK_UNINIT_MAGIC 0xAB
-#define BLOCK_UNINIT_MAGIC_32 0xABABABAB
-#define BLOCK_ALLOC_MAGIC 0xCD
-#define BLOCK_ALLOC_MAGIC_32 0xCDCDCDCD
-#define BLOCK_FREE_MAGIC 0xEF
-#define BLOCK_FREE_MAGIC_32 0xEFEFEFEF
-
-#define NODE_IS_VALID(node) (((node) != NULL) && ((node)->magic == NODE_MAGIC))
-
-#if OOT_DEBUG
-
-#define NODE_GET_NEXT(node) ArenaImpl_GetNextBlock(node)
-#define NODE_GET_PREV(node) ArenaImpl_GetPrevBlock(node)
-
-#define SET_DEBUG_INFO(node, file, line, arena) ArenaImpl_SetDebugInfo(node, file, line, arena)
-
-#define FILL_UNINIT_BLOCK(arena, node, size) memset(node, BLOCK_UNINIT_MAGIC, size)
-
-#define FILL_ALLOC_BLOCK(arena, alloc, size)   \
-    if ((arena)->flag & FILL_ALLOC_BLOCK_FLAG) \
-    memset(alloc, BLOCK_ALLOC_MAGIC, size)
-
-#define FILL_FREE_BLOCK_HEADER(arena, node)   \
-    if ((arena)->flag & FILL_FREE_BLOCK_FLAG) \
-    memset(node, BLOCK_FREE_MAGIC, sizeof(ArenaNode))
-
-#define FILL_FREE_BLOCK_CONTENTS(arena, node) \
-    if ((arena)->flag & FILL_FREE_BLOCK_FLAG) \
-    memset((void*)((uintptr_t)(node) + sizeof(ArenaNode)), BLOCK_FREE_MAGIC, (node)->size)
-
-#define CHECK_FREE_BLOCK(arena, node)          \
-    if ((arena)->flag & CHECK_FREE_BLOCK_FLAG) \
-    __osMalloc_FreeBlockTest(arena, node)
-
-#define CHECK_ALLOC_FAILURE(arena, ptr) (void)0
-
-#else
-
-#define NODE_GET_NEXT(node) (NODE_IS_VALID((node)->next) ? (node)->next : NULL)
-#define NODE_GET_PREV(node) (NODE_IS_VALID((node)->prev) ? (node)->prev : NULL)
-
-#define SET_DEBUG_INFO(node, file, line, arena) (void)0
-#define FILL_UNINIT_BLOCK(arena, node, size) (void)0
-#define FILL_ALLOC_BLOCK(arena, alloc, size) (void)0
-#define FILL_FREE_BLOCK_HEADER(arena, node) (void)0
-#define FILL_FREE_BLOCK_CONTENTS(arena, node) (void)0
-#define CHECK_FREE_BLOCK(arena, node) (void)0
-
-// Number of allocation failures across all arenas.
-u32 gTotalAllocFailures = 0; // "Arena_failcnt"
-
-#define CHECK_ALLOC_FAILURE(arena, ptr) \
-    do {                                \
-        if ((ptr) == NULL) {            \
-            gTotalAllocFailures++;      \
-            (arena)->allocFailures++;   \
-        }                               \
-    } while (0)
-
-#endif
+#define BLOCK_UNINIT_MAGIC (0xAB)
+#define BLOCK_UNINIT_MAGIC_32 (0xABABABAB)
+#define BLOCK_ALLOC_MAGIC (0xCD)
+#define BLOCK_ALLOC_MAGIC_32 (0xCDCDCDCD)
+#define BLOCK_FREE_MAGIC (0xEF)
+#define BLOCK_FREE_MAGIC_32 (0xEFEFEFEF)
 
 OSMesg sArenaLockMsg;
-
-void __osMallocAddBlock(Arena* arena, void* start, ptrdiff_t size);
-
-#if OOT_DEBUG
 u32 __osMalloc_FreeBlockTest_Enable;
 
 u32 ArenaImpl_GetFillAllocBlock(Arena* arena) {
-    return (arena->flag & FILL_ALLOC_BLOCK_FLAG) != 0;
+    return (arena->flag & FILL_ALLOCBLOCK) != 0;
 }
 u32 ArenaImpl_GetFillFreeBlock(Arena* arena) {
-    return (arena->flag & FILL_FREE_BLOCK_FLAG) != 0;
+    return (arena->flag & FILL_FREEBLOCK) != 0;
 }
 u32 ArenaImpl_GetCheckFreeBlock(Arena* arena) {
-    return (arena->flag & CHECK_FREE_BLOCK_FLAG) != 0;
+    return (arena->flag & CHECK_FREE_BLOCK) != 0;
 }
 
 void ArenaImpl_SetFillAllocBlock(Arena* arena) {
-    arena->flag |= FILL_ALLOC_BLOCK_FLAG;
+    arena->flag |= FILL_ALLOCBLOCK;
 }
 void ArenaImpl_SetFillFreeBlock(Arena* arena) {
-    arena->flag |= FILL_FREE_BLOCK_FLAG;
+    arena->flag |= FILL_FREEBLOCK;
 }
 void ArenaImpl_SetCheckFreeBlock(Arena* arena) {
-    arena->flag |= CHECK_FREE_BLOCK_FLAG;
+    arena->flag |= CHECK_FREE_BLOCK;
 }
 
 void ArenaImpl_UnsetFillAllocBlock(Arena* arena) {
-    arena->flag &= ~FILL_ALLOC_BLOCK_FLAG;
+    arena->flag &= ~FILL_ALLOCBLOCK;
 }
 void ArenaImpl_UnsetFillFreeBlock(Arena* arena) {
-    arena->flag &= ~FILL_FREE_BLOCK_FLAG;
+    arena->flag &= ~FILL_FREEBLOCK;
 }
 void ArenaImpl_UnsetCheckFreeBlock(Arena* arena) {
-    arena->flag &= ~CHECK_FREE_BLOCK_FLAG;
+    arena->flag &= ~CHECK_FREE_BLOCK;
 }
 
-void ArenaImpl_SetDebugInfo(ArenaNode* node, const char* file, int line, Arena* arena) {
-    // Upstream TODO: Figure out why uncommenting this crashes
-    /*
+#if 0
+void ArenaImpl_SetDebugInfo(ArenaNode* node, const char* file, s32 line, Arena* arena) {
     node->filename = file;
     node->line = line;
     node->threadId = osGetThreadId(NULL);
     node->arena = arena;
     node->time = osGetTime();
-    */
 }
 #endif
-
 void ArenaImpl_LockInit(Arena* arena) {
     osCreateMesgQueue(&arena->lock, &sArenaLockMsg, 1);
 }
@@ -142,7 +70,6 @@ void ArenaImpl_Unlock(Arena* arena) {
     osRecvMesg(&arena->lock, NULL, OS_MESG_BLOCK);
 }
 
-#if OOT_DEBUG
 ArenaNode* ArenaImpl_GetNextBlock(ArenaNode* node) {
     ArenaNode* next = node->next;
 
@@ -164,24 +91,23 @@ ArenaNode* ArenaImpl_GetPrevBlock(ArenaNode* node) {
     }
     return prev;
 }
-#endif
 
 ArenaNode* ArenaImpl_GetLastBlock(Arena* arena) {
     ArenaNode* last = NULL;
     ArenaNode* iter;
 
-    if (arena != NULL && NODE_IS_VALID(arena->head)) {
+    if (arena != NULL && arena->head != NULL && arena->head->magic == NODE_MAGIC) {
         iter = arena->head;
         while (iter != NULL) {
             last = iter;
-            iter = NODE_GET_NEXT(last);
+            iter = ArenaImpl_GetNextBlock(iter);
         }
     }
     return last;
 }
 
 void __osMallocInit(Arena* arena, void* start, size_t size) {
-    memset(arena, 0, sizeof(Arena));
+    memset(arena,0, sizeof(Arena));
     ArenaImpl_LockInit(arena);
     __osMallocAddBlock(arena, start, size);
     arena->isInit = true;
@@ -199,7 +125,7 @@ void __osMallocAddBlock(Arena* arena, void* start, ptrdiff_t size) {
         size2 = (size - diff) & ~0xF;
 
         if (size2 > (ptrdiff_t)sizeof(ArenaNode)) {
-            FILL_UNINIT_BLOCK(arena, firstNode, size2);
+            memset(firstNode, BLOCK_UNINIT_MAGIC, size2); // memset
             firstNode->next = NULL;
             firstNode->prev = NULL;
             firstNode->size = size2 - sizeof(ArenaNode);
@@ -219,7 +145,6 @@ void __osMallocAddBlock(Arena* arena, void* start, ptrdiff_t size) {
     }
 }
 
-#if OOT_DEBUG
 void ArenaImpl_RemoveAllBlocks(Arena* arena) {
     ArenaNode* iter;
     ArenaNode* next;
@@ -228,27 +153,23 @@ void ArenaImpl_RemoveAllBlocks(Arena* arena) {
 
     iter = arena->head;
     while (iter != NULL) {
-        next = NODE_GET_NEXT(iter);
-        memset(iter, BLOCK_UNINIT_MAGIC, iter->size + sizeof(ArenaNode));
+        next = ArenaImpl_GetNextBlock(iter);
+        memset(iter, BLOCK_UNINIT_MAGIC, iter->size + sizeof(ArenaNode)); // memset
         iter = next;
     }
 
     ArenaImpl_Unlock(arena);
 }
-#endif
 
 void __osMallocCleanup(Arena* arena) {
-#if OOT_DEBUG
     ArenaImpl_RemoveAllBlocks(arena);
-#endif
     memset(arena, 0, sizeof(*arena));
 }
 
-s32 __osMallocIsInitialized(Arena* arena) {
+u8 __osMallocIsInitalized(Arena* arena) {
     return arena->isInit;
 }
 
-#if OOT_DEBUG
 void __osMalloc_FreeBlockTest(Arena* arena, ArenaNode* node) {
     ArenaNode* node2 = node;
     u32* start;
@@ -273,24 +194,26 @@ void __osMalloc_FreeBlockTest(Arena* arena, ArenaNode* node) {
     }
 }
 
-void* __osMalloc_NoLockDebug(Arena* arena, size_t size, const char* file, int line) {
+void* __osMalloc_NoLockDebug(Arena* arena, size_t size, const char* file, s32 line) {
     ArenaNode* iter;
     u32 blockSize;
     ArenaNode* newNode;
     void* alloc = NULL;
     ArenaNode* next;
 
+    iter = arena->head;
     size = ALIGN16(size);
     blockSize = ALIGN16(size) + sizeof(ArenaNode);
-    iter = arena->head;
 
     while (iter != NULL) {
         if (iter->isFree && iter->size >= size) {
-            CHECK_FREE_BLOCK(arena, iter);
+            if (arena->flag & CHECK_FREE_BLOCK) {
+                __osMalloc_FreeBlockTest(arena, iter);
+            }
 
             if (blockSize < iter->size) {
                 newNode = (ArenaNode*)((uintptr_t)iter + blockSize);
-                newNode->next = NODE_GET_NEXT(iter);
+                newNode->next = ArenaImpl_GetNextBlock(iter);
                 newNode->prev = iter;
                 newNode->size = iter->size - blockSize;
                 newNode->isFree = true;
@@ -298,27 +221,29 @@ void* __osMalloc_NoLockDebug(Arena* arena, size_t size, const char* file, int li
 
                 iter->next = newNode;
                 iter->size = size;
-                next = NODE_GET_NEXT(newNode);
+                next = ArenaImpl_GetNextBlock(newNode);
                 if (next) {
                     next->prev = newNode;
                 }
             }
 
             iter->isFree = false;
-            SET_DEBUG_INFO(iter, file, line, arena);
+            //ArenaImpl_SetDebugInfo(iter, file, line, arena);
             alloc = (void*)((uintptr_t)iter + sizeof(ArenaNode));
-            FILL_ALLOC_BLOCK(arena, alloc, size);
+            if (arena->flag & FILL_ALLOCBLOCK) {
+                memset(alloc, BLOCK_ALLOC_MAGIC, size);
+            }
 
             break;
         }
 
-        iter = NODE_GET_NEXT(iter);
+        iter = ArenaImpl_GetNextBlock(iter);
     }
 
     return alloc;
 }
 
-void* __osMallocDebug(Arena* arena, size_t size, const char* file, int line) {
+void* __osMallocDebug(Arena* arena, size_t size, const char* file, s32 line) {
     void* alloc;
 
     ArenaImpl_Lock(arena);
@@ -328,7 +253,7 @@ void* __osMallocDebug(Arena* arena, size_t size, const char* file, int line) {
     return alloc;
 }
 
-void* __osMallocRDebug(Arena* arena, size_t size, const char* file, int line) {
+void* __osMallocRDebug(Arena* arena, size_t size, const char* file, s32 line) {
     ArenaNode* iter;
     ArenaNode* newNode;
     u32 blockSize;
@@ -341,19 +266,21 @@ void* __osMallocRDebug(Arena* arena, size_t size, const char* file, int line) {
 
     while (iter != NULL) {
         if (iter->isFree && iter->size >= size) {
-            CHECK_FREE_BLOCK(arena, iter);
+            if (arena->flag & CHECK_FREE_BLOCK) {
+                __osMalloc_FreeBlockTest(arena, iter);
+            }
 
             blockSize = ALIGN16(size) + sizeof(ArenaNode);
             if (blockSize < iter->size) {
                 newNode = (ArenaNode*)((uintptr_t)iter + (iter->size - size));
-                newNode->next = NODE_GET_NEXT(iter);
+                newNode->next = ArenaImpl_GetNextBlock(iter);
                 newNode->prev = iter;
                 newNode->size = size;
                 newNode->magic = NODE_MAGIC;
 
                 iter->next = newNode;
                 iter->size -= blockSize;
-                next = NODE_GET_NEXT(newNode);
+                next = ArenaImpl_GetNextBlock(newNode);
                 if (next) {
                     next->prev = newNode;
                 }
@@ -361,21 +288,21 @@ void* __osMallocRDebug(Arena* arena, size_t size, const char* file, int line) {
             }
 
             iter->isFree = false;
-            SET_DEBUG_INFO(iter, file, line, arena);
+            //ArenaImpl_SetDebugInfo(iter, file, line, arena);
             allocR = (void*)((uintptr_t)iter + sizeof(ArenaNode));
-            FILL_ALLOC_BLOCK(arena, allocR, size);
+            if (arena->flag & FILL_ALLOCBLOCK) {
+                memset(allocR, BLOCK_ALLOC_MAGIC, size);
+            }
 
             break;
         }
 
-        iter = NODE_GET_PREV(iter);
+        iter = ArenaImpl_GetPrevBlock(iter);
     }
-
     ArenaImpl_Unlock(arena);
 
     return allocR;
 }
-#endif
 
 void* __osMalloc_NoLock(Arena* arena, size_t size) {
     ArenaNode* iter;
@@ -384,17 +311,20 @@ void* __osMalloc_NoLock(Arena* arena, size_t size) {
     void* alloc = NULL;
     ArenaNode* next;
 
+    iter = arena->head;
     size = ALIGN16(size);
     blockSize = ALIGN16(size) + sizeof(ArenaNode);
-    iter = arena->head;
 
     while (iter != NULL) {
+
         if (iter->isFree && iter->size >= size) {
-            CHECK_FREE_BLOCK(arena, iter);
+            if (arena->flag & CHECK_FREE_BLOCK) {
+                __osMalloc_FreeBlockTest(arena, iter);
+            }
 
             if (blockSize < iter->size) {
                 newNode = (ArenaNode*)((uintptr_t)iter + blockSize);
-                newNode->next = NODE_GET_NEXT(iter);
+                newNode->next = ArenaImpl_GetNextBlock(iter);
                 newNode->prev = iter;
                 newNode->size = iter->size - blockSize;
                 newNode->isFree = true;
@@ -402,24 +332,23 @@ void* __osMalloc_NoLock(Arena* arena, size_t size) {
 
                 iter->next = newNode;
                 iter->size = size;
-                next = NODE_GET_NEXT(newNode);
+                next = ArenaImpl_GetNextBlock(newNode);
                 if (next) {
                     next->prev = newNode;
                 }
             }
 
             iter->isFree = false;
-            SET_DEBUG_INFO(iter, NULL, 0, arena);
+            //ArenaImpl_SetDebugInfo(iter, NULL, 0, arena);
             alloc = (void*)((uintptr_t)iter + sizeof(ArenaNode));
-            FILL_ALLOC_BLOCK(arena, alloc, size);
-
+            if (arena->flag & FILL_ALLOCBLOCK) {
+                memset(alloc, BLOCK_ALLOC_MAGIC, size);
+            }
             break;
         }
 
-        iter = NODE_GET_NEXT(iter);
+        iter = ArenaImpl_GetNextBlock(iter);
     }
-
-    CHECK_ALLOC_FAILURE(arena, alloc);
 
     return alloc;
 }
@@ -436,33 +365,32 @@ void* __osMalloc(Arena* arena, size_t size) {
 
 void* __osMallocR(Arena* arena, size_t size) {
     ArenaNode* iter;
-    ArenaNode* allocNode;
     ArenaNode* newNode;
+    u32 blockSize;
     ArenaNode* next;
     void* alloc = NULL;
-    u32 blockSize;
 
     size = ALIGN16(size);
-    blockSize = ALIGN16(size) + sizeof(ArenaNode);
     ArenaImpl_Lock(arena);
     iter = ArenaImpl_GetLastBlock(arena);
 
     while (iter != NULL) {
         if (iter->isFree && iter->size >= size) {
-            CHECK_FREE_BLOCK(arena, iter);
+            if (arena->flag & CHECK_FREE_BLOCK) {
+                __osMalloc_FreeBlockTest(arena, iter);
+            }
 
+            blockSize = ALIGN16(size) + sizeof(ArenaNode);
             if (blockSize < iter->size) {
-                allocNode = (ArenaNode*)((uintptr_t)iter + (iter->size - size));
-                allocNode->next = NODE_GET_NEXT(iter);
-
-                newNode = allocNode;
+                newNode = (ArenaNode*)((uintptr_t)iter + (iter->size - size));
+                newNode->next = ArenaImpl_GetNextBlock(iter);
                 newNode->prev = iter;
                 newNode->size = size;
                 newNode->magic = NODE_MAGIC;
 
                 iter->next = newNode;
                 iter->size -= blockSize;
-                next = NODE_GET_NEXT(newNode);
+                next = ArenaImpl_GetNextBlock(newNode);
                 if (next) {
                     next->prev = newNode;
                 }
@@ -470,88 +398,21 @@ void* __osMallocR(Arena* arena, size_t size) {
             }
 
             iter->isFree = false;
-            SET_DEBUG_INFO(iter, NULL, 0, arena);
+            //ArenaImpl_SetDebugInfo(iter, NULL, 0, arena);
             alloc = (void*)((uintptr_t)iter + sizeof(ArenaNode));
-            FILL_ALLOC_BLOCK(arena, alloc, size);
+            if (arena->flag & FILL_ALLOCBLOCK) {
+                memset(alloc, BLOCK_ALLOC_MAGIC, size);
+            }
             break;
         }
-        iter = NODE_GET_PREV(iter);
+        iter = ArenaImpl_GetPrevBlock(iter);
     }
-
-    CHECK_ALLOC_FAILURE(arena, alloc);
-
     ArenaImpl_Unlock(arena);
 
     return alloc;
 }
 
 void __osFree_NoLock(Arena* arena, void* ptr) {
-    ArenaNode* node;
-    ArenaNode* next;
-    ArenaNode* prev;
-
-    if (ptr == NULL) {
-        return;
-    }
-
-    node = (ArenaNode*)((uintptr_t)ptr - sizeof(ArenaNode));
-    if (!NODE_IS_VALID(node)) {
-        // "__osFree: Unauthorized release (%08x)"
-        osSyncPrintf(VT_COL(RED, WHITE) "__osFree:不正解放(%08x)\n" VT_RST, ptr);
-        return;
-    }
-    if (node->isFree) {
-        osSyncPrintf(VT_COL(RED, WHITE) "__osFree:二重解放(%08x)\n" VT_RST, ptr); // "__osFree: Double release (%08x)"
-        return;
-    }
-#if OOT_DEBUG
-    /*
-    if (arena != node->arena && arena != NULL) {
-        // "__osFree:Tried to release in a different way than when it was secured (%08x:%08x)"
-        osSyncPrintf(VT_COL(RED, WHITE) "__osFree:確保時と違う方法で解放しようとした (%08x:%08x)\n" VT_RST, arena,
-                     node->arena);
-        return;
-    }
-    */
-#endif
-
-    next = NODE_GET_NEXT(node);
-    prev = NODE_GET_PREV(node);
-    node->isFree = true;
-    SET_DEBUG_INFO(node, NULL, 0, arena);
-
-    FILL_FREE_BLOCK_CONTENTS(arena, node);
-
-    if ((uintptr_t)next == (uintptr_t)node + sizeof(ArenaNode) + node->size && next->isFree) {
-        ArenaNode* newNext = NODE_GET_NEXT(next);
-        if (newNext != NULL) {
-            newNext->prev = node;
-        }
-
-        node->size += next->size + sizeof(ArenaNode);
-        FILL_FREE_BLOCK_HEADER(arena, next);
-        node->next = newNext;
-        next = newNext;
-    }
-
-    if (prev != NULL && prev->isFree && (uintptr_t)node == (uintptr_t)prev + sizeof(ArenaNode) + prev->size) {
-        if (next) {
-            next->prev = prev;
-        }
-        prev->next = next;
-        prev->size += node->size + sizeof(ArenaNode);
-        FILL_FREE_BLOCK_HEADER(arena, node);
-    }
-}
-
-void __osFree(Arena* arena, void* ptr) {
-    ArenaImpl_Lock(arena);
-    __osFree_NoLock(arena, ptr);
-    ArenaImpl_Unlock(arena);
-}
-
-#if OOT_DEBUG
-void __osFree_NoLockDebug(Arena* arena, void* ptr, const char* file, int line) {
     ArenaNode* node;
     ArenaNode* next;
     ArenaNode* prev;
@@ -562,7 +423,77 @@ void __osFree_NoLockDebug(Arena* arena, void* ptr, const char* file, int line) {
     }
 
     node = (ArenaNode*)((uintptr_t)ptr - sizeof(ArenaNode));
-    if (!NODE_IS_VALID(node)) {
+    if (node == NULL || node->magic != NODE_MAGIC) {
+        // "__osFree: Unauthorized release (%08x)"
+        osSyncPrintf(VT_COL(RED, WHITE) "__osFree:不正解放(%08x)\n" VT_RST, ptr);
+        return;
+    }
+    if (node->isFree) {
+        osSyncPrintf(VT_COL(RED, WHITE) "__osFree:二重解放(%08x)\n" VT_RST, ptr); // "__osFree: Double release (%08x)"
+        return;
+    }
+    #if 0
+    if (arena != node->arena && arena != NULL) {
+        // "__osFree:Tried to release in a different way than when it was secured (%08x:%08x)"
+        osSyncPrintf(VT_COL(RED, WHITE) "__osFree:確保時と違う方法で解放しようとした (%08x:%08x)\n" VT_RST, arena,
+                     node->arena);
+        return;
+    }
+#endif
+    next = ArenaImpl_GetNextBlock(node);
+    prev = ArenaImpl_GetPrevBlock(node);
+    node->isFree = true;
+    //ArenaImpl_SetDebugInfo(node, NULL, 0, arena);
+
+    if (arena->flag & FILL_FREEBLOCK) {
+        memset((uintptr_t)node + sizeof(ArenaNode), BLOCK_FREE_MAGIC, node->size);
+    }
+
+    newNext = next;
+    if ((uintptr_t)next == (uintptr_t)node + sizeof(ArenaNode) + node->size && next->isFree) {
+        newNext = ArenaImpl_GetNextBlock(next);
+        if (newNext != NULL) {
+            newNext->prev = node;
+        }
+
+        node->size += next->size + sizeof(ArenaNode);
+        if (arena->flag & FILL_FREEBLOCK) {
+            memset(next, BLOCK_FREE_MAGIC, sizeof(ArenaNode));
+        }
+        node->next = newNext;
+        next = newNext;
+    }
+
+    if (prev != NULL && prev->isFree && (uintptr_t)node == (uintptr_t)prev + sizeof(ArenaNode) + prev->size) {
+        if (next) {
+            next->prev = prev;
+        }
+        prev->next = next;
+        prev->size += node->size + sizeof(ArenaNode);
+        if (arena->flag & FILL_FREEBLOCK) {
+            memset(node, BLOCK_FREE_MAGIC, sizeof(ArenaNode));
+        }
+    }
+}
+
+void __osFree(Arena* arena, void* ptr) {
+    ArenaImpl_Lock(arena);
+    __osFree_NoLock(arena, ptr);
+    ArenaImpl_Unlock(arena);
+}
+
+void __osFree_NoLockDebug(Arena* arena, void* ptr, const char* file, s32 line) {
+    ArenaNode* node;
+    ArenaNode* next;
+    ArenaNode* prev;
+    ArenaNode* newNext;
+
+    if (ptr == NULL) {
+        return;
+    }
+
+    node = (ArenaNode*)((uintptr_t)ptr - sizeof(ArenaNode));
+    if (node == NULL || node->magic != NODE_MAGIC) {
         // "__osFree: Unauthorized release (%08x)"
         osSyncPrintf(VT_COL(RED, WHITE) "__osFree:不正解放(%08x) [%s:%d ]\n" VT_RST, ptr, file, line);
         return;
@@ -572,32 +503,34 @@ void __osFree_NoLockDebug(Arena* arena, void* ptr, const char* file, int line) {
         osSyncPrintf(VT_COL(RED, WHITE) "__osFree:二重解放(%08x) [%s:%d ]\n" VT_RST, ptr, file, line);
         return;
     }
-
-    /*
+    #if 0
     if (arena != node->arena && arena != NULL) {
         // "__osFree:Tried to release in a different way than when it was secured (%08x:%08x)"
         osSyncPrintf(VT_COL(RED, WHITE) "__osFree:確保時と違う方法で解放しようとした (%08x:%08x)\n" VT_RST, arena,
                      node->arena);
         return;
     }
-    */
-
-    next = NODE_GET_NEXT(node);
-    prev = NODE_GET_PREV(node);
+    #endif
+    next = ArenaImpl_GetNextBlock(node);
+    prev = ArenaImpl_GetPrevBlock(node);
     node->isFree = true;
-    SET_DEBUG_INFO(node, file, line, arena);
+    //ArenaImpl_SetDebugInfo(node, file, line, arena);
 
-    FILL_FREE_BLOCK_CONTENTS(arena, node);
+    if (arena->flag & FILL_FREEBLOCK) {
+        memset((uintptr_t)node + sizeof(ArenaNode), BLOCK_FREE_MAGIC, node->size);
+    }
 
     newNext = node->next;
     if ((uintptr_t)next == (uintptr_t)node + sizeof(ArenaNode) + node->size && next->isFree) {
-        newNext = NODE_GET_NEXT(next);
+        newNext = ArenaImpl_GetNextBlock(next);
         if (newNext != NULL) {
             newNext->prev = node;
         }
 
         node->size += next->size + sizeof(ArenaNode);
-        FILL_FREE_BLOCK_HEADER(arena, next);
+        if (arena->flag & FILL_FREEBLOCK) {
+            memset(next, BLOCK_FREE_MAGIC, sizeof(ArenaNode));
+        }
         node->next = newNext;
         next = newNext;
     }
@@ -608,20 +541,21 @@ void __osFree_NoLockDebug(Arena* arena, void* ptr, const char* file, int line) {
         }
         prev->next = next;
         prev->size += node->size + sizeof(ArenaNode);
-        FILL_FREE_BLOCK_HEADER(arena, node);
+        if (arena->flag & FILL_FREEBLOCK) {
+            memset(node, BLOCK_FREE_MAGIC, sizeof(ArenaNode));
+        }
     }
 }
 
-void __osFreeDebug(Arena* arena, void* ptr, const char* file, int line) {
+void __osFreeDebug(Arena* arena, void* ptr, const char* file, s32 line) {
     ArenaImpl_Lock(arena);
     __osFree_NoLockDebug(arena, ptr, file, line);
     ArenaImpl_Unlock(arena);
 }
-#endif
 
 void* __osRealloc(Arena* arena, void* ptr, size_t newSize) {
-    ArenaNode* node;
     void* newAlloc;
+    ArenaNode* node;
     ArenaNode* next;
     ArenaNode* newNext;
     ArenaNode* overNext;
@@ -648,21 +582,20 @@ void* __osRealloc(Arena* arena, void* ptr, size_t newSize) {
             // "Does nothing because the memory block size does not change"
             osSyncPrintf("メモリブロックサイズが変わらないためなにもしません\n");
         } else if (node->size < newSize) {
-            next = NODE_GET_NEXT(node);
+            next = ArenaImpl_GetNextBlock(node);
             sizeDiff = newSize - node->size;
-            if ((uintptr_t)next == ((uintptr_t)node + node->size + sizeof(ArenaNode)) && next->isFree &&
-                next->size >= sizeDiff) {
+            if ((uintptr_t)next == ((uintptr_t)node + node->size + sizeof(ArenaNode)) && next->isFree && next->size >= sizeDiff) {
                 // "Merge because there is a free block after the current memory block"
                 osSyncPrintf("現メモリブロックの後ろにフリーブロックがあるので結合します\n");
                 next->size -= sizeDiff;
-                overNext = NODE_GET_NEXT(next);
+                overNext = ArenaImpl_GetNextBlock(next);
                 newNext = (ArenaNode*)((uintptr_t)next + sizeDiff);
                 if (overNext != NULL) {
                     overNext->prev = newNext;
                 }
                 node->next = newNext;
                 node->size = newSize;
-                memmove(node->next, next, sizeof(ArenaNode));
+                func_801068B0(newNext, next, sizeof(ArenaNode)); // memcpy
             } else {
                 // "Allocate a new memory block and move the contents"
                 osSyncPrintf("新たにメモリブロックを確保して内容を移動します\n");
@@ -674,7 +607,7 @@ void* __osRealloc(Arena* arena, void* ptr, size_t newSize) {
                 ptr = newAlloc;
             }
         } else if (newSize < node->size) {
-            next2 = NODE_GET_NEXT(node);
+            next2 = ArenaImpl_GetNextBlock(node);
             if (next2 != NULL && next2->isFree) {
                 blockSize = ALIGN16(newSize) + sizeof(ArenaNode);
                 // "Increased free block behind current memory block"
@@ -685,7 +618,7 @@ void* __osRealloc(Arena* arena, void* ptr, size_t newSize) {
                 newNext2->size += node->size - newSize;
                 node->next = newNext2;
                 node->size = newSize;
-                overNext2 = NODE_GET_NEXT(newNext2);
+                overNext2 = ArenaImpl_GetNextBlock(newNext2);
                 if (overNext2 != NULL) {
                     overNext2->prev = newNext2;
                 }
@@ -694,14 +627,14 @@ void* __osRealloc(Arena* arena, void* ptr, size_t newSize) {
                 // "Generated because there is no free block after the current memory block"
                 osSyncPrintf("現メモリブロックの後ろにフリーブロックがないので生成します\n");
                 newNext2 = (ArenaNode*)((uintptr_t)node + blockSize);
-                newNext2->next = NODE_GET_NEXT(node);
+                newNext2->next = ArenaImpl_GetNextBlock(node);
                 newNext2->prev = node;
                 newNext2->size = node->size - blockSize;
                 newNext2->isFree = true;
                 newNext2->magic = NODE_MAGIC;
                 node->next = newNext2;
                 node->size = newSize;
-                overNext2 = NODE_GET_NEXT(newNext2);
+                overNext2 = ArenaImpl_GetNextBlock(newNext2);
                 if (overNext2 != NULL) {
                     overNext2->prev = newNext2;
                 }
@@ -711,19 +644,15 @@ void* __osRealloc(Arena* arena, void* ptr, size_t newSize) {
                 ptr = NULL;
             }
         }
-
-        CHECK_ALLOC_FAILURE(arena, ptr);
     }
     ArenaImpl_Unlock(arena);
 
     return ptr;
 }
 
-#if OOT_DEBUG
-void* __osReallocDebug(Arena* arena, void* ptr, size_t newSize, const char* file, int line) {
+void* __osReallocDebug(Arena* arena, void* ptr, size_t newSize, const char* file, s32 line) {
     return __osRealloc(arena, ptr, newSize);
 }
-#endif
 
 void ArenaImpl_GetSizes(Arena* arena, u32* outMaxFree, u32* outFree, u32* outAlloc) {
     ArenaNode* iter;
@@ -745,13 +674,12 @@ void ArenaImpl_GetSizes(Arena* arena, u32* outMaxFree, u32* outFree, u32* outAll
             *outAlloc += iter->size;
         }
 
-        iter = NODE_GET_NEXT(iter);
+        iter = ArenaImpl_GetNextBlock(iter);
     }
 
     ArenaImpl_Unlock(arena);
 }
 
-#if OOT_DEBUG
 void __osDisplayArena(Arena* arena) {
     size_t freeSize;
     size_t allocatedSize;
@@ -759,7 +687,7 @@ void __osDisplayArena(Arena* arena) {
     ArenaNode* iter;
     ArenaNode* next;
 
-    if (!__osMallocIsInitialized(arena)) {
+    if (!__osMallocIsInitalized(arena)) {
         osSyncPrintf("アリーナは初期化されていません\n"); // "Arena is not initalized"
         return;
     }
@@ -782,14 +710,12 @@ void __osDisplayArena(Arena* arena) {
                          (next == NULL) ? '$' : (iter != next->prev ? '!' : ' '),
                          iter->isFree ? "空き" : "確保", //? "Free" : "Secure"
                          iter->size);
-
-            /*
+            #if 0
             if (!iter->isFree) {
                 osSyncPrintf(" [%016llu:%2d:%s:%d]", OS_CYCLES_TO_NSEC(iter->time), iter->threadId,
                              iter->filename != NULL ? iter->filename : "**NULL**", iter->line);
             }
-            */
-
+            #endif
             osSyncPrintf("\n");
 
             if (iter->isFree) {
@@ -816,7 +742,6 @@ void __osDisplayArena(Arena* arena) {
 
     ArenaImpl_Unlock(arena);
 }
-#endif
 
 void ArenaImpl_FaultClient(Arena* arena) {
     size_t freeSize;
@@ -826,7 +751,7 @@ void ArenaImpl_FaultClient(Arena* arena) {
     ArenaNode* next;
 
     FaultDrawer_Printf("ARENA INFO (0x%08x)\n", arena);
-    if (!__osMallocIsInitialized(arena)) {
+    if (!__osMallocIsInitalized(arena)) {
         FaultDrawer_Printf("Arena is uninitalized\n", arena);
         return;
     }
@@ -868,7 +793,7 @@ void ArenaImpl_FaultClient(Arena* arena) {
     FaultDrawer_Printf("Largest Free Block Size %08x\n", maxFree);
 }
 
-s32 __osCheckArena(Arena* arena) {
+u32 __osCheckArena(Arena* arena) {
     ArenaNode* iter;
     u32 error = 0;
 
@@ -877,19 +802,13 @@ s32 __osCheckArena(Arena* arena) {
     osSyncPrintf("アリーナの内容をチェックしています．．． (%08x)\n", arena);
     iter = arena->head;
     while (iter != NULL) {
-        //! @bug: Probably intended to be `!NODE_IS_VALID(iter)`
-        if (NODE_IS_VALID(iter)) {
-#if OOT_DEBUG
+        if (iter && iter->magic == NODE_MAGIC) {
             // "Oops!! (%08x %08x)"
             osSyncPrintf(VT_COL(RED, WHITE) "おおっと！！ (%08x %08x)\n" VT_RST, iter, iter->magic);
-#else
-            // "Oops!! (%08x %08x)"
-            osSyncPrintf("おおっと！！ (%08x %08x)\n", iter, iter->magic);
-#endif
             error = 1;
             break;
         }
-        iter = NODE_GET_NEXT(iter);
+        iter = ArenaImpl_GetNextBlock(iter);
     }
     if (error == 0) {
         osSyncPrintf("アリーナはまだ、いけそうです\n"); // "The arena is still going well"
@@ -899,8 +818,6 @@ s32 __osCheckArena(Arena* arena) {
     return error;
 }
 
-#if OOT_DEBUG
-u8 ArenaImpl_GetAllocFailures(Arena* arena) {
+u8 func_800FF334(Arena* arena) {
     return arena->unk_20;
 }
-#endif

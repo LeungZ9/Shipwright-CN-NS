@@ -1,11 +1,11 @@
 #include "SetCameraSettings.h"
 
-namespace SOH {
+namespace LUS {
 CameraSettings* SetCameraSettings::GetPointer() {
     return &settings;
 }
 
 size_t SetCameraSettings::GetPointerSize() {
-    return sizeof(CameraSettings);
+	return sizeof(CameraSettings);
 }
-} // namespace SOH
+} // namespace LUS

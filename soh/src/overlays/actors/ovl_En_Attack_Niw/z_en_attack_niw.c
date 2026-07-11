@@ -7,9 +7,8 @@
 #include "z_en_attack_niw.h"
 #include "objects/object_niw/object_niw.h"
 #include "overlays/actors/ovl_En_Niw/z_en_niw.h"
-#include "soh/ResourceManagerHelpers.h"
 
-#define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
+#define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
 void EnAttackNiw_Init(Actor* thisx, PlayState* play);
 void EnAttackNiw_Destroy(Actor* thisx, PlayState* play);
@@ -55,14 +54,9 @@ void EnAttackNiw_Init(Actor* thisx, PlayState* play) {
     this->unk_298.y = Rand_CenteredFloat(10.0f);
     this->unk_298.z = Rand_CenteredFloat(100.0f);
     Actor_SetScale(&this->actor, 0.01f);
-    this->actor.flags &= ~ACTOR_FLAG_ATTENTION_ENABLED;
+    this->actor.flags &= ~ACTOR_FLAG_TARGETABLE;
     this->actor.shape.rot.y = this->actor.world.rot.y = (Rand_ZeroOne() - 0.5f) * 60000.0f;
     this->actionFunc = func_809B5670;
-
-    if (CVarGetInteger("gCrowdControl", 0) &&
-        CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("SpawnedEnemiesIgnoredIngame"), 0)) {
-        Actor_ChangeCategory(gPlayState, &gPlayState->actorCtx, this, ACTORCAT_NPC);
-    }
 }
 
 void EnAttackNiw_Destroy(Actor* thisx, PlayState* play) {
@@ -339,9 +333,9 @@ void EnAttackNiw_Update(Actor* thisx, PlayState* play) {
     Actor_UpdateBgCheckInfo(play, &this->actor, 20.0f, 20.0f, 60.0f, 0x1D);
 
     if (this->actionFunc == func_809B5670) {
-        Actor_MoveXYZ(&this->actor);
+        func_8002D97C(&this->actor);
     } else {
-        Actor_MoveXZGravity(&this->actor);
+        Actor_MoveForward(&this->actor);
     }
 
     if (this->actor.floorHeight <= BGCHECK_Y_MIN) {

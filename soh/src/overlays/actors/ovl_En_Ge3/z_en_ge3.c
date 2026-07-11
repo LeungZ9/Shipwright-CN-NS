@@ -6,10 +6,8 @@
 
 #include "z_en_ge3.h"
 #include "objects/object_geldb/object_geldb.h"
-#include "soh/ResourceManagerHelpers.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
-#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_WHILE_CULLED)
 
 void EnGe3_Init(Actor* thisx, PlayState* play);
 void EnGe3_Destroy(Actor* thisx, PlayState* play);
@@ -132,7 +130,7 @@ void EnGe3_Wait(EnGe3* this, PlayState* play) {
     if (Actor_TextboxIsClosing(&this->actor, play)) {
         this->actionFunc = EnGe3_WaitLookAtPlayer;
         this->actor.update = EnGe3_UpdateWhenNotTalking;
-        this->actor.flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
+        this->actor.flags &= ~ACTOR_FLAG_WILL_TALK;
     }
     EnGe3_TurnToFacePlayer(this, play);
 }
@@ -142,22 +140,29 @@ void EnGe3_WaitLookAtPlayer(EnGe3* this, PlayState* play) {
 }
 
 void EnGe3_WaitTillCardGiven(EnGe3* this, PlayState* play) {
-    if (Actor_HasParent(&this->actor, play) || !GameInteractor_Should(VB_GIVE_ITEM_GERUDO_MEMBERSHIP_CARD, true)) {
+    if (Actor_HasParent(&this->actor, play)) {
         this->actor.parent = NULL;
         this->actionFunc = EnGe3_Wait;
     } else {
-        Actor_OfferGetItem(&this->actor, play, GI_GERUDO_CARD, 10000.0f, 50.0f);
+        if (!IS_RANDO) {
+            func_8002F434(&this->actor, play, GI_GERUDO_CARD, 10000.0f, 50.0f);
+        } else {
+            GetItemEntry getItemEntry = Randomizer_GetItemFromKnownCheck(RC_GF_GERUDO_MEMBERSHIP_CARD, GI_GERUDO_CARD);
+            GiveItemEntryFromActor(&this->actor, play, getItemEntry, 10000.0f, 50.0f);
+        }
     }
 }
 
 void EnGe3_GiveCard(EnGe3* this, PlayState* play) {
-    if (GameInteractor_Should(VB_END_GERUDO_MEMBERSHIP_TALK,
-                              (Message_GetState(&play->msgCtx) == TEXT_STATE_EVENT) && Message_ShouldAdvance(play))) {
+    if ((Message_GetState(&play->msgCtx) == TEXT_STATE_EVENT) && Message_ShouldAdvance(play)) {
         Message_CloseTextbox(play);
-        this->actor.flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
+        this->actor.flags &= ~ACTOR_FLAG_WILL_TALK;
         this->actionFunc = EnGe3_WaitTillCardGiven;
-        if (GameInteractor_Should(VB_GIVE_ITEM_GERUDO_MEMBERSHIP_CARD, true)) {
-            Actor_OfferGetItem(&this->actor, play, GI_GERUDO_CARD, 10000.0f, 50.0f);
+        if (!IS_RANDO) {
+            func_8002F434(&this->actor, play, GI_GERUDO_CARD, 10000.0f, 50.0f);
+        } else {
+            GetItemEntry getItemEntry = Randomizer_GetItemFromKnownCheck(RC_GF_GERUDO_MEMBERSHIP_CARD, GI_GERUDO_CARD);
+            GiveItemEntryFromActor(&this->actor, play, getItemEntry, 10000.0f, 50.0f);
         }
     }
 }
@@ -167,11 +172,11 @@ void EnGe3_ForceTalk(EnGe3* this, PlayState* play) {
         this->actionFunc = EnGe3_GiveCard;
     } else {
         if (!(this->unk_30C & 4)) {
-            Player_SetCsActionWithHaltedActors(play, &this->actor, 7);
+            func_8002DF54(play, &this->actor, 7);
             this->unk_30C |= 4;
         }
         this->actor.textId = 0x6004;
-        this->actor.flags |= ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
+        this->actor.flags |= ACTOR_FLAG_WILL_TALK;
         func_8002F1C4(&this->actor, play, 300.0f, 300.0f, 0);
     }
     EnGe3_LookAtPlayer(this, play);
@@ -192,7 +197,7 @@ void EnGe3_UpdateCollision(EnGe3* this, PlayState* play) {
 
 void EnGe3_MoveAndBlink(EnGe3* this, PlayState* play) {
 
-    Actor_MoveXZGravity(&this->actor);
+    Actor_MoveForward(&this->actor);
 
     if (DECR(this->blinkTimer) == 0) {
         this->blinkTimer = Rand_S16Offset(60, 60);
@@ -247,7 +252,7 @@ s32 EnGe3_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* p
             rot->x += this->headRot.y;
 
         default:
-            if (CVarGetInteger(CVAR_ENHANCEMENT("GerudoWarriorClothingFix"), 0)) {
+            if (CVarGetInteger("gGerudoWarriorClothingFix", 0)) {
                 // This is a hack to fix the color-changing clothes this Gerudo has on N64 versions
                 OPEN_DISPS(play->state.gfxCtx);
                 switch (limbIndex) {
@@ -298,7 +303,7 @@ void EnGe3_Draw(Actor* thisx, PlayState* play2) {
     Gfx_SetupDL_37Opa(play->state.gfxCtx);
     gSPSegment(POLY_OPA_DISP++, 0x08, SEGMENTED_TO_VIRTUAL(eyeTextures[this->eyeIndex]));
     func_8002EBCC(&this->actor, play, 0);
-    SkelAnime_DrawSkeletonOpa(play, &this->skelAnime, EnGe3_OverrideLimbDraw, EnGe3_PostLimbDraw, this);
+    SkelAnime_DrawSkeletonOpa(play, &this->skelAnime,EnGe3_OverrideLimbDraw, EnGe3_PostLimbDraw, this);
 
     CLOSE_DISPS(play->state.gfxCtx);
 }

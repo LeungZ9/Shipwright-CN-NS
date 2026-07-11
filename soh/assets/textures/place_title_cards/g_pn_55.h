@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gDesertColossusTitleCardGERTex[] = dgDesertColo
 static const ALIGN_ASSET(2) char gDesertColossusTitleCardFRATex[] = dgDesertColossusTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgDesertColossusTitleCardCHITex "__OTR__textures/g_pn_55/gDesertColossusTitleCardCHITex"
 static const ALIGN_ASSET(2) char gDesertColossusTitleCardCHITex[] = dgDesertColossusTitleCardCHITex;

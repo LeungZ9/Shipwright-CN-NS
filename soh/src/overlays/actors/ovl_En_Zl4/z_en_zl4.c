@@ -7,10 +7,8 @@
 #include "z_en_zl4.h"
 #include "objects/object_zl4/object_zl4.h"
 #include "scenes/indoors/nakaniwa/nakaniwa_scene.h"
-#include "soh/ResourceManagerHelpers.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
-#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_WHILE_CULLED)
 
 typedef enum {
     /* 0 */ ZL4_CS_WAIT,
@@ -229,6 +227,20 @@ u16 EnZl4_GetText(PlayState* play, Actor* thisx) {
     return ret;
 }
 
+void GivePlayerRandoRewardZeldaChild(EnZl4* zelda, PlayState* play, RandomizerCheck check) {
+    if (zelda->actor.parent != NULL && zelda->actor.parent->id == GET_PLAYER(play)->actor.id &&
+        !Flags_GetTreasure(play, 0x1E)) {
+        Flags_SetTreasure(play, 0x1E);
+    } else if (!Flags_GetTreasure(play, 0x1E) && !Randomizer_GetSettingValue(RSK_SKIP_CHILD_ZELDA) && Actor_TextboxIsClosing(&zelda->actor, play) &&
+               (play->msgCtx.textId == 0x703C || play->msgCtx.textId == 0x703D)) {
+        GetItemEntry getItemEntry = Randomizer_GetItemFromKnownCheck(check, GI_LETTER_ZELDA);
+        GiveItemEntryFromActor(&zelda->actor, play, getItemEntry, 10000.0f, 100.0f);
+    } else if (Flags_GetTreasure(play, 0x1E) && !Player_InBlockingCsMode(play, GET_PLAYER(play))) {
+        gSaveContext.unk_13EE = 0x32;
+        Flags_SetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER);
+    }
+}
+
 s16 func_80B5B9B0(PlayState* play, Actor* thisx) {
     EnZl4* this = (EnZl4*)thisx;
 
@@ -304,7 +316,7 @@ void EnZl4_UpdateFace(EnZl4* this) {
 }
 
 void EnZl4_SetMove(EnZl4* this, PlayState* play) {
-    this->skelAnime.movementFlags |= 1;
+    this->skelAnime.moveFlags |= 1;
     AnimationContext_SetMoveActor(play, &this->actor, &this->skelAnime, 1.0f);
 }
 
@@ -315,7 +327,7 @@ void func_80B5BB78(EnZl4* this, PlayState* play) {
     Npc_TrackPoint(&this->actor, &this->interactInfo, 2, NPC_TRACKING_HEAD_AND_TORSO);
 }
 
-void EnZl4_GetActionStartPos(CsCmdActorCue* action, Vec3f* vec) {
+void EnZl4_GetActionStartPos(CsCmdActorAction* action, Vec3f* vec) {
     vec->x = action->startPos.x;
     vec->y = action->startPos.y;
     vec->z = action->startPos.z;
@@ -326,7 +338,7 @@ s32 EnZl4_SetupFromLegendCs(EnZl4* this, PlayState* play) {
     Actor* playerx = &GET_PLAYER(play)->actor;
     s16 rotY;
 
-    Player_SetCsActionWithHaltedActors(play, &this->actor, 8);
+    func_8002DF54(play, &this->actor, 8);
     playerx->world.pos = this->actor.world.pos;
     rotY = this->actor.shape.rot.y;
     playerx->world.pos.x += 56.0f * Math_SinS(rotY);
@@ -377,6 +389,12 @@ void EnZl4_Init(Actor* thisx, PlayState* play) {
     this->actor.textId = -1;
     this->eyeExpression = this->mouthExpression = ZL4_MOUTH_NEUTRAL;
 
+    if (IS_RANDO) {
+        Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ZL4_ANIM_0);
+        this->actionFunc = EnZl4_Idle;
+        return;
+    }
+
     if (gSaveContext.sceneSetupIndex >= 4) {
         Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ZL4_ANIM_0);
         this->actionFunc = EnZl4_TheEnd;
@@ -384,7 +402,7 @@ void EnZl4_Init(Actor* thisx, PlayState* play) {
         Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ZL4_ANIM_0);
         this->actionFunc = EnZl4_Idle;
     } else {
-        if (gSaveContext.entranceIndex != ENTR_CASTLE_COURTYARD_ZELDA_1) {
+        if (gSaveContext.entranceIndex != 0x5F0) {
             Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ZL4_ANIM_21);
             this->csState = ZL4_CS_WAIT;
             this->talkState = 0;
@@ -780,10 +798,10 @@ s32 EnZl4_CsAskName(EnZl4* this, PlayState* play) {
             this->talkTimer2++;
             if (this->talkTimer2 == 130) {
                 play->msgCtx.msgMode = MSGMODE_PAUSED;
-                play->nextEntranceIndex = ENTR_CUTSCENE_MAP_0;
+                play->nextEntranceIndex = 0xA0;
                 gSaveContext.nextCutsceneIndex = 0xFFF7;
-                play->transitionTrigger = TRANS_TRIGGER_START;
-                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                play->sceneLoadFlag = 0x14;
+                play->fadeTransition = 3;
             }
             break;
     }
@@ -912,7 +930,7 @@ s32 EnZl4_CsLookWindow(EnZl4* this, PlayState* play) {
                 play->csCtx.segment = SEGMENTED_TO_VIRTUAL(gZeldasCourtyardGanonCs);
                 gSaveContext.cutsceneTrigger = 1;
                 this->talkState++;
-                Player_SetCsActionWithHaltedActors(play, &this->actor, 8);
+                func_8002DF54(play, &this->actor, 8);
             }
             break;
         case 2:
@@ -922,7 +940,7 @@ s32 EnZl4_CsLookWindow(EnZl4* this, PlayState* play) {
                 }
             } else {
                 func_800AA000(0.0f, 0xA0, 0xA, 0x28);
-                Player_SetCsActionWithHaltedActors(play, &this->actor, 1);
+                func_8002DF54(play, &this->actor, 1);
                 Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ZL4_ANIM_30);
                 EnZl4_SetCsCameraAngle(play, 11);
                 Message_StartTextbox(play, 0x7039, NULL);
@@ -1109,21 +1127,19 @@ s32 EnZl4_CsMakePlan(EnZl4* this, PlayState* play) {
                 Camera_ChangeSetting(GET_ACTIVE_CAM(play), 1);
                 this->talkState = 7;
                 play->talkWithPlayer(play, &this->actor);
-                if (GameInteractor_Should(VB_GIVE_ITEM_ZELDAS_LETTER, true)) {
-                    Actor_OfferGetItem(&this->actor, play, GI_LETTER_ZELDA, fabsf(this->actor.xzDistToPlayer) + 1.0f,
-                                       fabsf(this->actor.yDistToPlayer) + 1.0f);
-                }
+                func_8002F434(&this->actor, play, GI_LETTER_ZELDA, fabsf(this->actor.xzDistToPlayer) + 1.0f,
+                              fabsf(this->actor.yDistToPlayer) + 1.0f);
                 play->msgCtx.stateTimer = 4;
                 play->msgCtx.msgMode = MSGMODE_TEXT_CLOSING;
             }
             break;
         case 7:
-            if (Actor_HasParent(&this->actor, play) || !GameInteractor_Should(VB_GIVE_ITEM_ZELDAS_LETTER, true)) {
+            if (Actor_HasParent(&this->actor, play)) {
                 Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ZL4_ANIM_0);
                 this->talkState++;
             } else {
-                Actor_OfferGetItem(&this->actor, play, GI_LETTER_ZELDA, fabsf(this->actor.xzDistToPlayer) + 1.0f,
-                                   fabsf(this->actor.yDistToPlayer) + 1.0f);
+                func_8002F434(&this->actor, play, GI_LETTER_ZELDA, fabsf(this->actor.xzDistToPlayer) + 1.0f,
+                              fabsf(this->actor.yDistToPlayer) + 1.0f);
             }
             // no break here is required for matching
     }
@@ -1190,7 +1206,7 @@ void EnZl4_Cutscene(EnZl4* this, PlayState* play) {
             break;
         case ZL4_CS_PLAN:
             if (EnZl4_CsMakePlan(this, play)) {
-                Player_SetCsActionWithHaltedActors(play, &this->actor, 7);
+                func_8002DF54(play, &this->actor, 7);
                 gSaveContext.unk_13EE = 0x32;
                 Flags_SetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER);
                 this->actionFunc = EnZl4_Idle;
@@ -1209,12 +1225,17 @@ void EnZl4_Idle(EnZl4* this, PlayState* play) {
     Npc_UpdateTalking(play, &this->actor, &this->interactInfo.talkState, this->collider.dim.radius + 60.0f,
                       EnZl4_GetText, func_80B5B9B0);
     func_80B5BB78(this, play);
+    
+    if (IS_RANDO) {
+        GivePlayerRandoRewardZeldaChild(this, play, RC_HC_ZELDAS_LETTER);
+        return;
+    }
 }
 
 void EnZl4_TheEnd(EnZl4* this, PlayState* play) {
     s32 animIndex[] = { ZL4_ANIM_0, ZL4_ANIM_0, ZL4_ANIM_0,  ZL4_ANIM_0,  ZL4_ANIM_0,
                         ZL4_ANIM_0, ZL4_ANIM_0, ZL4_ANIM_26, ZL4_ANIM_21, ZL4_ANIM_3 };
-    CsCmdActorCue* npcAction;
+    CsCmdActorAction* npcAction;
     Vec3f pos;
 
     if (SkelAnime_Update(&this->skelAnime) && (this->skelAnime.animation == &gChildZeldaAnim_010DF8)) {

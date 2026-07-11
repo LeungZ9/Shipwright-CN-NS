@@ -234,7 +234,7 @@ void func_8086EE40(BgBombwall* this, PlayState* play) {
         func_8086EE94(this, play);
 
         if (((this->dyna.actor.params >> 0xF) & 1) != 0) {
-            Sfx_PlaySfxCentered(NA_SE_SY_CORRECT_CHIME);
+            func_80078884(NA_SE_SY_CORRECT_CHIME);
         }
     }
 }

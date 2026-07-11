@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gZorasRiverTitleCardGERTex[] = dgZorasRiverTitl
 static const ALIGN_ASSET(2) char gZorasRiverTitleCardFRATex[] = dgZorasRiverTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgZorasRiverTitleCardCHITex "__OTR__textures/g_pn_30/gZorasRiverTitleCardCHITex"
 static const ALIGN_ASSET(2) char gZorasRiverTitleCardCHITex[] = dgZorasRiverTitleCardCHITex;

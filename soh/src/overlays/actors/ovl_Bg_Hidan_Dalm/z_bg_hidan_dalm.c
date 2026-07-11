@@ -6,7 +6,6 @@
 
 #include "z_bg_hidan_dalm.h"
 #include "objects/object_hidan_objects/object_hidan_objects.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 #define FLAGS 0
 
@@ -127,10 +126,8 @@ void BgHidanDalm_Destroy(Actor* thisx, PlayState* play) {
 void BgHidanDalm_Wait(BgHidanDalm* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
-    if (GameInteractor_Should(VB_HAMMER_TOTEM_BREAK,
-                              (this->collider.base.acFlags & AC_HIT) && !Player_InCsMode(play) &&
-                                  (player->meleeWeaponAnimation == 22 || player->meleeWeaponAnimation == 23),
-                              this)) {
+    if ((this->collider.base.acFlags & AC_HIT) && !Player_InCsMode(play) &&
+        (player->meleeWeaponAnimation == 22 || player->meleeWeaponAnimation == 23)) {
         this->collider.base.acFlags &= ~AC_HIT;
         if ((this->collider.elements[0].info.bumperFlags & BUMP_HIT) ||
             (this->collider.elements[1].info.bumperFlags & BUMP_HIT)) {
@@ -141,8 +138,8 @@ void BgHidanDalm_Wait(BgHidanDalm* this, PlayState* play) {
         this->dyna.actor.world.pos.x += 32.5f * Math_SinS(this->dyna.actor.world.rot.y);
         this->dyna.actor.world.pos.z += 32.5f * Math_CosS(this->dyna.actor.world.rot.y);
 
-        Player_SetCsActionWithHaltedActors(play, &this->dyna.actor, 8);
-        this->dyna.actor.flags |= ACTOR_FLAG_UPDATE_CULLING_DISABLED;
+        func_8002DF54(play, &this->dyna.actor, 8);
+        this->dyna.actor.flags |= ACTOR_FLAG_UPDATE_WHILE_CULLED;
         this->actionFunc = BgHidanDalm_Shrink;
         this->dyna.actor.bgCheckFlags &= ~2;
         this->dyna.actor.bgCheckFlags &= ~8;
@@ -162,7 +159,7 @@ void BgHidanDalm_Shrink(BgHidanDalm* this, PlayState* play) {
     Vec3f pos;
 
     if (Math_StepToF(&this->dyna.actor.scale.x, 0.0f, 0.004f)) {
-        Player_SetCsActionWithHaltedActors(play, &this->dyna.actor, 7);
+        func_8002DF54(play, &this->dyna.actor, 7);
         Actor_Kill(&this->dyna.actor);
     }
 
@@ -184,7 +181,7 @@ void BgHidanDalm_Update(Actor* thisx, PlayState* play) {
     BgHidanDalm* this = (BgHidanDalm*)thisx;
 
     this->actionFunc(this, play);
-    Actor_MoveXZGravity(&this->dyna.actor);
+    Actor_MoveForward(&this->dyna.actor);
     Actor_UpdateBgCheckInfo(play, &this->dyna.actor, 10.0f, 15.0f, 32.0f, 5);
 }
 

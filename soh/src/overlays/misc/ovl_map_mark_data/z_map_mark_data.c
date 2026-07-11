@@ -1452,9 +1452,8 @@ static MapMarkData sMapMarkIceCavernVanilla[] = {
 };
 
 MapMarkData* gMapMarkDataTableVanilla[] = {
-    sMapMarkDekuTreeVanilla,   sMapMarkDodongosCavernVanilla, sMapMarkJabuJabuBellyVanilla, sMapMarkForestTempleVanilla,
-    sMapMarkFireTempleVanilla, sMapMarkWaterTempleVanilla,    sMapMarkSpiritTempleVanilla,  sMapMarkShadowTempleVanilla,
-    sMapMarkBottomWellVanilla, sMapMarkIceCavernVanilla,
+    sMapMarkDekuTreeVanilla,    sMapMarkDodongosCavernVanilla, sMapMarkJabuJabuBellyVanilla, sMapMarkForestTempleVanilla, sMapMarkFireTempleVanilla,
+    sMapMarkWaterTempleVanilla, sMapMarkSpiritTempleVanilla,   sMapMarkShadowTempleVanilla,  sMapMarkBottomWellVanilla,   sMapMarkIceCavernVanilla,
 };
 
 static MapMarkData sMapMarkDekuTreeMq[] = {
@@ -2903,7 +2902,6 @@ static MapMarkData sMapMarkIceCavernMq[] = {
 };
 
 MapMarkData* gMapMarkDataTableMq[] = {
-    sMapMarkDekuTreeMq,   sMapMarkDodongosCavernMq, sMapMarkJabuJabuBellyMq, sMapMarkForestTempleMq,
-    sMapMarkFireTempleMq, sMapMarkWaterTempleMq,    sMapMarkSpiritTempleMq,  sMapMarkShadowTempleMq,
-    sMapMarkBottomWellMq, sMapMarkIceCavernMq,
+    sMapMarkDekuTreeMq,    sMapMarkDodongosCavernMq, sMapMarkJabuJabuBellyMq, sMapMarkForestTempleMq, sMapMarkFireTempleMq,
+    sMapMarkWaterTempleMq, sMapMarkSpiritTempleMq,   sMapMarkShadowTempleMq,  sMapMarkBottomWellMq,   sMapMarkIceCavernMq,
 };

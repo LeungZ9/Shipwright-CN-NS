@@ -6,9 +6,8 @@
 
 #include "z_bg_ydan_hasi.h"
 #include "objects/object_ydan_objects/object_ydan_objects.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
-#define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
+#define FLAGS (ACTOR_FLAG_UPDATE_WHILE_CULLED | ACTOR_FLAG_DRAW_WHILE_CULLED)
 
 void BgYdanHasi_Init(Actor* thisx, PlayState* play);
 void BgYdanHasi_Destroy(Actor* thisx, PlayState* play);
@@ -127,10 +126,9 @@ void BgYdanHasi_MoveWater(BgYdanHasi* this, PlayState* play) {
 }
 
 void BgYdanHasi_DecWaterTimer(BgYdanHasi* this, PlayState* play) {
-    if (GameInteractor_Should(VB_SWITCH_TIMER_TICK, this->timer != 0, this, &this->timer)) {
+    if (this->timer != 0) {
         this->timer--;
     }
-
     func_8002F994(&this->dyna.actor, this->timer);
     if (this->timer == 0) {
         this->actionFunc = BgYdanHasi_MoveWater;
@@ -147,10 +145,9 @@ void BgYdanHasi_SetupThreeBlocks(BgYdanHasi* this, PlayState* play) {
 }
 
 void BgYdanHasi_UpdateThreeBlocks(BgYdanHasi* this, PlayState* play) {
-    if (GameInteractor_Should(VB_SWITCH_TIMER_TICK, this->timer != 0, this, &this->timer)) {
+    if (this->timer != 0) {
         this->timer--;
     }
-
     if (this->timer == 0) {
         if (Math_StepToF(&this->dyna.actor.world.pos.y, this->dyna.actor.home.pos.y, 3.0f) != 0) {
             Flags_UnsetSwitch(play, this->type);
@@ -184,10 +181,11 @@ void BgYdanHasi_Draw(Actor* thisx, PlayState* play) {
 
         Gfx_SetupDL_25Xlu(play->state.gfxCtx);
         gSPSegment(POLY_XLU_DISP++, 0x08,
-                   Gfx_TwoTexScrollEx(play->state.gfxCtx, 0, -play->gameplayFrames % 128, play->gameplayFrames % 128,
-                                      0x20, 0x20, 1, play->gameplayFrames % 128, play->gameplayFrames % 128, 0x20, 0x20,
-                                      -1, 1, 1, 1));
-        gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+                   Gfx_TwoTexScroll(play->state.gfxCtx, 0, -play->gameplayFrames % 128,
+                                    play->gameplayFrames % 128, 0x20, 0x20, 1, play->gameplayFrames % 128,
+                                    play->gameplayFrames % 128, 0x20, 0x20));
+        gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
+                  G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
         gSPDisplayList(POLY_XLU_DISP++, gDTWaterPlaneDL);
 
         CLOSE_DISPS(play->state.gfxCtx);

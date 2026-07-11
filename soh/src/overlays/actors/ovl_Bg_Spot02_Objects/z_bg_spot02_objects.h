@@ -19,7 +19,4 @@ typedef struct BgSpot02Objects {
     /* 0x0172 */ u16 unk_172;
 } BgSpot02Objects; // size = 0x0174
 
-void func_808ACC34(BgSpot02Objects* bgSpot02Objects, PlayState* play);
-void func_808AC908(BgSpot02Objects* bgSpot02Objects, PlayState* play);
-
 #endif

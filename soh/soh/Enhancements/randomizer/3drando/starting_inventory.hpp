@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../randomizerTypes.h"
+#include "keys.hpp"
 
 #include <vector>
 #include <stdint.h>
 
-extern std::vector<RandomizerGet> StartingInventory;
+extern std::vector<uint32_t> StartingInventory;
 extern uint8_t AdditionalHeartContainers;
 
 void GenerateStartingInventory();

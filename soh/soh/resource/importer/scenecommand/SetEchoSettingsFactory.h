@@ -2,16 +2,15 @@
 
 #include "soh/resource/importer/scenecommand/SceneCommandFactory.h"
 
-namespace SOH {
-class SetEchoSettingsFactory final : public SceneCommandFactoryBinaryV0 {
+namespace LUS {
+class SetEchoSettingsFactory : public SceneCommandFactory {
   public:
-    std::shared_ptr<Ship::IResource> ReadResource(std::shared_ptr<Ship::ResourceInitData> initData,
-                                                  std::shared_ptr<Ship::BinaryReader> reader) override;
+    std::shared_ptr<IResource>
+    ReadResource(std::shared_ptr<ResourceInitData> initData, std::shared_ptr<BinaryReader> reader) override;
 };
 
-class SetEchoSettingsFactoryXML final : public SceneCommandFactoryXMLV0 {
+class SetEchoSettingsFactoryV0 : public SceneCommandVersionFactory {
   public:
-    std::shared_ptr<Ship::IResource> ReadResource(std::shared_ptr<Ship::ResourceInitData> initData,
-                                                  tinyxml2::XMLElement* reader) override;
+    void ParseFileBinary(std::shared_ptr<BinaryReader> reader, std::shared_ptr<IResource> resource) override;
 };
-} // namespace SOH
+}; // namespace LUS

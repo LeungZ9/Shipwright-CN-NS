@@ -1,6 +1,6 @@
 #include "Path.h"
 
-namespace SOH {
+namespace LUS {
 PathData* Path::GetPointer() {
     return pathData.data();
 }
@@ -8,4 +8,4 @@ PathData* Path::GetPointer() {
 size_t Path::GetPointerSize() {
     return pathData.size() * sizeof(PathData);
 }
-} // namespace SOH
+} // namespace LUS

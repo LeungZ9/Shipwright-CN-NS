@@ -9,7 +9,7 @@
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "soh/frame_interpolation.h"
 
-#define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
+#define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
 typedef enum {
     /* -1 */ DT_DRAWBRIDGE = -1,
@@ -82,8 +82,7 @@ void BgSpot00Hanebasi_Init(Actor* thisx, PlayState* play) {
         if (gSaveContext.sceneSetupIndex != 6) {
             // Don't close the bridge in rando to accomodate hyrule castle exit
             if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD) && CHECK_QUEST_ITEM(QUEST_GORON_RUBY) &&
-                CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE) && !Flags_GetEventChkInf(EVENTCHKINF_ZELDA_FLED_HYRULE_CASTLE) &&
-                !(IS_RANDO)) {
+                CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE) && !Flags_GetEventChkInf(EVENTCHKINF_ZELDA_FLED_HYRULE_CASTLE) && !(IS_RANDO)) {
                 this->dyna.actor.shape.rot.x = -0x4000;
             }
         }
@@ -215,8 +214,7 @@ void BgSpot00Hanebasi_Update(Actor* thisx, PlayState* play) {
     if (this->dyna.actor.params == DT_DRAWBRIDGE) {
         if (play->sceneNum == SCENE_HYRULE_FIELD) {
             if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD) && CHECK_QUEST_ITEM(QUEST_GORON_RUBY) &&
-                CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE) && !Flags_GetEventChkInf(EVENTCHKINF_ZELDA_FLED_HYRULE_CASTLE) &&
-                LINK_IS_CHILD) {
+                CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE) && !Flags_GetEventChkInf(EVENTCHKINF_ZELDA_FLED_HYRULE_CASTLE) && LINK_IS_CHILD) {
                 Player* player = GET_PLAYER(play);
 
                 if ((player->actor.world.pos.x > -450.0f) && (player->actor.world.pos.x < 450.0f) &&
@@ -225,11 +223,11 @@ void BgSpot00Hanebasi_Update(Actor* thisx, PlayState* play) {
                     Flags_SetEventChkInf(EVENTCHKINF_ZELDA_FLED_HYRULE_CASTLE);
                     Flags_SetEventChkInf(EVENTCHKINF_DRAWBRIDGE_OPENED_AFTER_ZELDA_FLED);
                     this->actionFunc = BgSpot00Hanebasi_DoNothing;
-                    Player_SetCsActionWithHaltedActors(play, &player->actor, 8);
-                    play->nextEntranceIndex = ENTR_HYRULE_FIELD_PAST_BRIDGE_SPAWN;
+                    func_8002DF54(play, &player->actor, 8);
+                    play->nextEntranceIndex = 0x00CD;
                     gSaveContext.nextCutsceneIndex = 0xFFF1;
-                    play->transitionTrigger = TRANS_TRIGGER_START;
-                    play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                    play->sceneLoadFlag = 0x14;
+                    play->fadeTransition = 4;
                 } else if (Actor_IsFacingAndNearPlayer(&this->dyna.actor, 3000.0f, 0x7530)) {
                     play->envCtx.gloomySkyMode = 1;
                 }
@@ -282,14 +280,15 @@ void BgSpot00Hanebasi_DrawTorches(Actor* thisx, PlayState* play2) {
         FrameInterpolation_RecordOpenChild("Hanebasi Torch", i);
 
         gSPSegment(POLY_XLU_DISP++, 0x08,
-                   Gfx_TwoTexScrollEx(play->state.gfxCtx, 0, 0, 0, 32, 64, 1, 0,
-                                      ((play->gameplayFrames + i) * -20) & 0x1FF, 32, 128, 0, 0, 0, -20));
+                   Gfx_TwoTexScroll(play->state.gfxCtx, 0, 0, 0, 32, 64, 1, 0,
+                                    ((play->gameplayFrames + i) * -20) & 0x1FF, 32, 128));
 
         Matrix_Translate((i == 0) ? 260.0f : -260.0f, 128.0f, 690.0f, MTXMODE_NEW);
         Matrix_RotateY(angle, MTXMODE_APPLY);
         Matrix_Scale(sTorchFlameScale, sTorchFlameScale, sTorchFlameScale, MTXMODE_APPLY);
 
-        gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+        gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
+                  G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
         gSPDisplayList(POLY_XLU_DISP++, gEffFire1DL);
 
         FrameInterpolation_RecordCloseChild();
@@ -306,7 +305,8 @@ void BgSpot00Hanebasi_Draw(Actor* thisx, PlayState* play) {
 
     Gfx_SetupDL_25Opa(play->state.gfxCtx);
 
-    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
     if (thisx->params == DT_DRAWBRIDGE) {
         gSPDisplayList(POLY_OPA_DISP++, gHyruleFieldCastleDrawbridgeDL);

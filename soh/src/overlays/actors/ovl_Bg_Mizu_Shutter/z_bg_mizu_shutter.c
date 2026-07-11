@@ -1,8 +1,7 @@
 #include "z_bg_mizu_shutter.h"
 #include "objects/object_mizu_objects/object_mizu_objects.h"
-#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
-#define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
+#define FLAGS ACTOR_FLAG_UPDATE_WHILE_CULLED
 
 #define SIZE_PARAM (((u16)this->dyna.actor.params >> 0xC) & 0xF)
 #define TIMER_PARAM (((u16)this->dyna.actor.params >> 6) & 0x3F)
@@ -138,9 +137,7 @@ void BgMizuShutter_Move(BgMizuShutter* this, PlayState* play) {
 
 void BgMizuShutter_WaitForTimer(BgMizuShutter* this, PlayState* play) {
     if (this->timerMax != 0x3F * 20) {
-        if (GameInteractor_Should(VB_SWITCH_TIMER_TICK, true, this, &this->timer)) {
-            this->timer--;
-        }
+        this->timer--;
         func_8002F994(&this->dyna.actor, this->timer);
         if (this->timer == 0) {
             Audio_PlayActorSound2(&this->dyna.actor, NA_SE_EV_METALDOOR_CLOSE);
@@ -163,7 +160,8 @@ void BgMizuShutter_Draw(BgMizuShutter* thisx, PlayState* play) {
 
     OPEN_DISPS(play->state.gfxCtx);
     Gfx_SetupDL_25Opa(play->state.gfxCtx);
-    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
+              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
     if (this->displayList != NULL) {
         gSPDisplayList(POLY_OPA_DISP++, this->displayList);

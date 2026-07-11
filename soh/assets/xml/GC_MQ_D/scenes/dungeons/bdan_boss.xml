@@ -1,5 +1,4 @@
 <Root>
-    <ExternalFile XmlPath="code/sys_matrix.xml" OutPath="code/sys_matrix/"/>
     <File Name="bdan_boss_scene" Segment="2">
         <Scene Name="bdan_boss_scene" Offset="0x0"/>
     </File>

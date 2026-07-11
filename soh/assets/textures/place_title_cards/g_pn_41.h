@@ -13,6 +13,8 @@ static const ALIGN_ASSET(2) char gGoronCityTitleCardGERTex[] = dgGoronCityTitleC
 static const ALIGN_ASSET(2) char gGoronCityTitleCardFRATex[] = dgGoronCityTitleCardFRATex;
 
 
+
+
 // #region SOH [Chinese]
 #define dgGoronCityTitleCardCHITex "__OTR__textures/g_pn_41/gGoronCityTitleCardCHITex"
 static const ALIGN_ASSET(2) char gGoronCityTitleCardCHITex[] = dgGoronCityTitleCardCHITex;

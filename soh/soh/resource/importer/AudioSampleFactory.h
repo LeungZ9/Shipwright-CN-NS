@@ -1,23 +1,19 @@
 #pragma once
 
-#include <ship/resource/Resource.h>
-#include <ship/resource/ResourceFactoryBinary.h>
-#include <ship/resource/ResourceFactoryXML.h>
+#include "Resource.h"
+#include "ResourceFactory.h"
 
-namespace SOH {
-class ResourceFactoryBinaryAudioSampleV2 final : public Ship::ResourceFactoryBinary {
+namespace LUS {
+class AudioSampleFactory : public ResourceFactory
+{
   public:
-    std::shared_ptr<Ship::IResource> ReadResource(std::shared_ptr<Ship::File> file,
-                                                  std::shared_ptr<Ship::ResourceInitData> initData) override;
+    std::shared_ptr<IResource>
+    ReadResource(std::shared_ptr<ResourceInitData> initData, std::shared_ptr<BinaryReader> reader) override;
 };
 
-class ResourceFactoryXMLAudioSampleV0 final : public Ship::ResourceFactoryXML {
+class AudioSampleFactoryV0 : public ResourceVersionFactory
+{
   public:
-    std::shared_ptr<Ship::IResource> ReadResource(std::shared_ptr<Ship::File> file,
-                                                  std::shared_ptr<Ship::ResourceInitData> initData) override;
-
-  private:
-    static uint8_t CodecStrToInt(const char* str, const char* file);
+    void ParseFileBinary(std::shared_ptr<BinaryReader> reader, std::shared_ptr<IResource> resource) override;
 };
-
-} // namespace SOH
+}; // namespace LUS

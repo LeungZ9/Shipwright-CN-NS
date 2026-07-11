@@ -3,11 +3,11 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
-#include <ship/resource/Resource.h>
+#include "Resource.h"
 #include "SceneCommand.h"
 #include <libultraship/libultra/types.h>
 
-namespace SOH {
+namespace LUS {
 typedef struct {
     /* 0x00 */ u8 ambientColor[3];
     /* 0x03 */ s8 light1Dir[3];
@@ -19,7 +19,7 @@ typedef struct {
     /* 0x14 */ s16 fogFar;
 } EnvLightSettings; // size = 0x16
 
-class SetLightingSettings final : public SceneCommand<EnvLightSettings> {
+class SetLightingSettings : public SceneCommand<EnvLightSettings> {
   public:
     using SceneCommand::SceneCommand;
 
@@ -28,4 +28,4 @@ class SetLightingSettings final : public SceneCommand<EnvLightSettings> {
 
     std::vector<EnvLightSettings> settings;
 };
-}; // namespace SOH
+}; // namespace LUS

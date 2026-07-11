@@ -1,7 +1,6 @@
 #include "global.h"
 #include "z64elf_message.h"
 #include <assert.h>
-#include "soh/OTRGlobals.h"
 
 ElfMessage sChildSariaMsgs[] = {
     ELF_MSG_STRENGTH_UPG(SKIP, 3, false, 0),
@@ -156,7 +155,7 @@ u16 ElfMessage_GetSariaText(PlayState* play) {
 
     if (!LINK_IS_ADULT) {
         if (Actor_FindNearby(play, &player->actor, ACTOR_EN_SA, 4, 800.0f) == NULL) {
-            if (IS_RANDO && Randomizer_GetSettingValue(RSK_SARIA_HINT)) {
+             if (IS_RANDO && Randomizer_GetSettingValue(RSK_SARIA_HINT)) {
                 return 0x161;
             }
             msgs = sChildSariaMsgs;

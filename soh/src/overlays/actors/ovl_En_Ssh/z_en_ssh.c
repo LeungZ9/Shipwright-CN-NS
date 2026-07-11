@@ -1,11 +1,7 @@
 #include "z_en_ssh.h"
 #include "objects/object_ssh/object_ssh.h"
-#include "soh/OTRGlobals.h"
-#include "soh/ResourceManagerHelpers.h"
 
-#define FLAGS                                                                                 \
-    (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOSTILE | ACTOR_FLAG_UPDATE_CULLING_DISABLED | \
-     ACTOR_FLAG_DRAW_CULLING_DISABLED)
+#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_HOSTILE | ACTOR_FLAG_UPDATE_WHILE_CULLED | ACTOR_FLAG_DRAW_WHILE_CULLED)
 
 #define SSH_STATE_STUNNED (1 << 0)
 #define SSH_STATE_GROUND_START (1 << 2)
@@ -162,8 +158,8 @@ s32 EnSsh_CheckCeilingPos(EnSsh* this, PlayState* play) {
     posB.x = this->actor.world.pos.x;
     posB.y = this->actor.world.pos.y + 1000.0f;
     posB.z = this->actor.world.pos.z;
-    if (!BgCheck_EntityLineTest1(&play->colCtx, &this->actor.world.pos, &posB, &this->ceilingPos, &poly, false, false,
-                                 true, true, &bgId)) {
+    if (!BgCheck_EntityLineTest1(&play->colCtx, &this->actor.world.pos, &posB, &this->ceilingPos, &poly, false,
+                                 false, true, true, &bgId)) {
         return false;
     } else {
         return true;
@@ -354,13 +350,12 @@ void EnSsh_Bob(EnSsh* this, PlayState* play) {
 }
 
 s32 EnSsh_IsCloseToLink(EnSsh* this, PlayState* play) {
-    // #region SOH [Randomizer] automatically lower skultulla people
+    Player* player = GET_PLAYER(play);
+    f32 yDist;
+
     if (IS_RANDO) {
         return true;
     }
-    // #endregion
-    Player* player = GET_PLAYER(play);
-    f32 yDist;
     if (this->stateFlags & SSH_STATE_GROUND_START) {
         return true;
     }
@@ -703,26 +698,19 @@ void EnSsh_Idle(EnSsh* this, PlayState* play) {
                 this->actor.textId = Text_GetFaceReaction(play, 0xD);
                 if (this->actor.textId == 0) {
                     if (this->actor.params == ENSSH_FATHER) {
-                        // #region SOH [Randomizer] Skip the complexity of the father's text when he should just give a
-                        // hint
-                        if (IS_RANDO && Randomizer_GetSettingValue(RSK_KAK_100_SKULLS_HINT)) {
-                            this->actor.textId = 0x27;
-                            // #endregion
-                        } else {
-                            if (gSaveContext.inventory.gsTokens >= 50) {
-                                this->actor.textId = 0x29;
-                            } else if (gSaveContext.inventory.gsTokens >= 10) {
-                                if (Flags_GetInfTable(INFTABLE_197)) {
-                                    this->actor.textId = 0x24;
-                                } else {
-                                    this->actor.textId = 0x25;
-                                }
+                        if (gSaveContext.inventory.gsTokens >= 50) {
+                            this->actor.textId = 0x29;
+                        } else if (gSaveContext.inventory.gsTokens >= 10) {
+                            if (Flags_GetInfTable(INFTABLE_197)) {
+                                this->actor.textId = 0x24;
                             } else {
-                                if (Flags_GetInfTable(INFTABLE_196)) {
-                                    this->actor.textId = 0x27;
-                                } else {
-                                    this->actor.textId = 0x26;
-                                }
+                                this->actor.textId = 0x25;
+                            }
+                        } else {
+                            if (Flags_GetInfTable(INFTABLE_196)) {
+                                this->actor.textId = 0x27;
+                            } else {
+                                this->actor.textId = 0x26;
                             }
                         }
                     } else {
@@ -829,7 +817,7 @@ void EnSsh_Update(Actor* thisx, PlayState* play) {
         EnSsh_Damaged(this);
     } else {
         SkelAnime_Update(&this->skelAnime);
-        Actor_UpdatePos(&this->actor);
+        func_8002D7EC(&this->actor);
         Actor_UpdateBgCheckInfo(play, &this->actor, 0.0f, 0.0f, 0.0f, 4);
         this->actionFunc(this, play);
     }
@@ -897,5 +885,6 @@ void EnSsh_Draw(Actor* thisx, PlayState* play) {
     OPEN_DISPS(play->state.gfxCtx);
     gSPSegment(POLY_OPA_DISP++, 0x08, SEGMENTED_TO_VIRTUAL(blinkTex[this->blinkState]));
     CLOSE_DISPS(play->state.gfxCtx);
-    SkelAnime_DrawSkeletonOpa(play, &this->skelAnime, EnSsh_OverrideLimbDraw, EnSsh_PostLimbDraw, &this->actor);
+    SkelAnime_DrawSkeletonOpa(play, &this->skelAnime, EnSsh_OverrideLimbDraw,
+                      EnSsh_PostLimbDraw, &this->actor);
 }
