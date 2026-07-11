@@ -135,6 +135,7 @@ Randomizer::Randomizer() {
             item.GetName().english,
             item.GetName().english,
             item.GetName().french,
+            item.GetName().english,
         };
     }
 }
